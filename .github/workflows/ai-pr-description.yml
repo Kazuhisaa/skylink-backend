@@ -1,0 +1,104 @@
+name: AI PR Description Generator
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  generate-description:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get git diff
+        id: diff
+        run: |
+          DIFF=$(git diff origin/main...HEAD --stat && echo "---" && git diff origin/main...HEAD -- '*.py' | head -200)
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Generate PR description with Gemini
+        id: gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          DIFF='${{ steps.diff.outputs.diff }}'
+          BRANCH="${{ github.head_ref }}"
+
+          PROMPT="You are a helpful assistant that writes GitHub PR descriptions.
+
+          Branch name: $BRANCH
+
+          Code changes:
+          $DIFF
+
+          Fill out this PR template based on the changes. Return only the filled markdown, nothing else:
+
+          ## 🎫 Jira Ticket
+          SKYLINK-
+
+          ## 📝 Summary
+
+          ## 🔧 Type of Change
+          - [ ] Bug fix
+          - [ ] New feature
+          - [ ] Refactor
+          - [ ] Tests
+          - [ ] Documentation
+
+          ## ✅ Checklist
+          - [ ] Follows PEP8 style
+          - [ ] Tests written and passing
+          - [ ] No hardcoded secrets/passwords
+          - [ ] requirements.txt updated (if needed)
+          - [ ] Self-reviewed ang code
+
+          ## 🧪 How to Test"
+
+          RESPONSE=$(curl -s \
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$GEMINI_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"contents\": [{
+                \"parts\": [{
+                  \"text\": $(echo "$PROMPT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+                }]
+              }]
+            }")
+
+          DESCRIPTION=$(echo $RESPONSE | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          print(data['candidates'][0]['content']['parts'][0]['text'])
+          ")
+
+          echo "description<<EOF" >> $GITHUB_OUTPUT
+          echo "$DESCRIPTION" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update PR with AI description
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} \
+            --body "${{ steps.gemini.outputs.description }}"
+```
+
+---
+
+## Flow
+```
+git push origin feature/SKYLINK-7-login-auth
+              ↓
+PR opened sa GitHub
+              ↓
+Gemini API mag-a-analyze ng code changes
+              ↓
+Auto-fill ang PR template ✅
