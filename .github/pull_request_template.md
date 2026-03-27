@@ -1,23 +1,21 @@
 ## 🎫 Jira Ticket
-<!-- Required: SKYLINK-[NUMBER] -->
-SKYLINK-
+- **Ticket:** [SKYLINK-XXX](https://jebreilblancada.atlassian.net/browse/SKYLINK-XXX)
 
 ## 📝 Summary
-<!-- Ano ang ginawa mo? -->
-
 ## 🔧 Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Refactor
-- [ ] Tests
-- [ ] Documentation
+- [ ] 🚀 New feature
+- [ ] 🐛 Bug fix
+- [ ] ♻️ Refactor
+- [ ] 🧪 Tests
+- [ ] 📄 Documentation
 
 ## ✅ Checklist
-- [ ] Follows PEP8 style
-- [ ] Tests written and passing
-- [ ] No hardcoded secrets/passwords
-- [ ] requirements.txt updated (if needed)
-- [ ] Self-reviewed ang code
+- [ ] **Linting:** Pumasa sa style guide (PEP8/ESLint).
+- [ ] **Testing:** Unit tests are passing.
+- [ ] **Security:** No hardcoded secrets/passwords.
+- [ ] **Jira:** Issue key is in the branch name/PR title.
+
 
 ## 🧪 How to Test
-<!-- Steps para ma-test ang changes -->
+1. `git checkout [branch-name]`
+2. Run command: `[test command]`
