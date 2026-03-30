@@ -210,4 +210,4 @@ Track all issues and sprint progress on our Jira board:
 
 ## License
 
-For academic purposes only — SkyLink Airline Reservation System (Capstone Project).
+For academic purposes only — SkyLink Airline Reservation System.
