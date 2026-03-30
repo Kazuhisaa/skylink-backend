@@ -17,4 +17,4 @@ async def health_check_db():
       await conn.fetchval("SELECT 1")
     return {"status": "ok", "database": "connected"}
   except Exception as e:
-    return {"status": "error", "database": "unavailable"} # str(e) change the unavailable during local practice
+    return {"status": "error", "database": str(e)} # str(e) change to unavailable after debug
