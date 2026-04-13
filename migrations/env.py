@@ -7,11 +7,8 @@ from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
 from app.database import Base, SYNC_DATABASE_URL
-from app.models.users import User, Role
-from app.models.flights import Flight, Aircraft, Airport
-from app.models.bookings import Booking, Passenger
-from app.models.payments import Payment
-from app.models.audit import RescheduleHistory, Cancellation
+from app.auth.models import User, Role, LoginAttempt
+import app.models  
 
 config = context.config
 config.set_main_option("sqlalchemy.url", SYNC_DATABASE_URL)
