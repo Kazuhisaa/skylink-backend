@@ -7,6 +7,7 @@ on:
 jobs:
   generate-description:
     runs-on: ubuntu-latest
+    continue-on-error: true # add 
     permissions:
       pull-requests: write
       contents: read
@@ -71,13 +72,13 @@ jobs:
                   \"text\": $(echo "$PROMPT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
                 }]
               }]
-            }")
+            }") || true
 
           DESCRIPTION=$(echo $RESPONSE | python3 -c "
           import sys, json
           data = json.load(sys.stdin)
           print(data['candidates'][0]['content']['parts'][0]['text'])
-          ")
+          ") || true
 
           echo "description<<EOF" >> $GITHUB_OUTPUT
           echo "$DESCRIPTION" >> $GITHUB_OUTPUT
@@ -88,7 +89,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr edit ${{ github.event.pull_request.number }} \
-            --body "${{ steps.gemini.outputs.description }}"
+            --body "${{ steps.gemini.outputs.description }}" || true
 ```
 
 ---
