@@ -24,6 +24,7 @@ engine = create_async_engine(
     pool_recycle=300,    # recycle connections every 5 mins (prevents stale)
     pool_pre_ping=True,  # quick SELECT 1 to verify it's still alive
     echo=False,
+    connect_args={"statement_cache_size": 0},
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -36,3 +37,14 @@ class Base(DeclarativeBase):
     pass
 
 SYNC_DATABASE_URL = DATABASE_URL.replace("postgresql+asyncpg", "postgresql+psycopg2")
+
+
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await session.close()
