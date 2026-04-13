@@ -27,7 +27,7 @@ async def insert_user(data: dict, db: AsyncSession) -> User:
     return user
 
 
-async def create_user(body: RegisterRequest, db: AsyncSession) -> User:
+async def create_passenger(body: RegisterRequest, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.email == body.email))
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered.")
