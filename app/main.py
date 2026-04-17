@@ -2,11 +2,11 @@ from fastapi import FastAPI
 from app.core.config import configure_middlewares, debug_mode
 from app.core.limiter import configure_limiter
 import logging
-
-from tests import test_health
+import app.models  
 
 from app.auth import router as authentications
-import app.models  
+from app.routers.flights import router as flights_router
+from tests import test_health
 
 
 logging.basicConfig(
@@ -22,13 +22,14 @@ app = FastAPI(**debug_mode())
 configure_middlewares(app)
 configure_limiter(app)
 
+API_PREFIX = "/api/v1"
 
 # Auth
-app.include_router(authentications.router)
+app.include_router(authentications.router, prefix=API_PREFIX)
 
 
 # App logic
-# app.include_router(example.router)
+app.include_router(flights_router, prefix=API_PREFIX)
 
 
 # Health check
