@@ -90,16 +90,16 @@ jobs:
         run: |
           gh pr edit ${{ github.event.pull_request.number }} \
             --body "${{ steps.gemini.outputs.description }}" || true
-```
+#```
 
----
+#---
 
 ## Flow
-```
-git push origin feature/SKYLINK-7-login-auth
-              ↓
-PR opened sa GitHub
-              ↓
-Gemini API mag-a-analyze ng code changes
-              ↓
-Auto-fill ang PR template ✅
+#```
+#git push origin feature/SKYLINK-7-login-auth
+#              ↓
+#PR opened sa GitHub
+#              ↓
+#Gemini API mag-a-analyze ng code changes
+#              ↓
+#Auto-fill ang PR template ✅
