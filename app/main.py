@@ -6,6 +6,7 @@ import app.models
 
 from app.auth import router as authentications
 from app.routers.flights import router as flights_router
+from app.routers.bookings import router as bookings_router
 from tests import test_health
 
 
@@ -30,6 +31,8 @@ app.include_router(authentications.router, prefix=API_PREFIX)
 
 # App logic
 app.include_router(flights_router, prefix=API_PREFIX)
+app.include_router(bookings_router, prefix=API_PREFIX)
+
 
 
 # Health check
