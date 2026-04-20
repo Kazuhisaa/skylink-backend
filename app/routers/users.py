@@ -13,7 +13,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
 
 # ─── Profile Endpoints ────────────────────────────────────────────────────────
 
-@router.get("/profile", response_model=UserProfileRead)
+@router.get("/me", response_model=UserProfileRead)
 async def get_my_profile(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -21,7 +21,7 @@ async def get_my_profile(
     return await users_service.get_profile(current_user.id, db)
 
 
-@router.put("/profile", response_model=UserProfileRead)
+@router.put("/me", response_model=UserProfileRead)
 async def update_my_profile(
     body: UserProfileUpdate,
     db: AsyncSession = Depends(get_db),
