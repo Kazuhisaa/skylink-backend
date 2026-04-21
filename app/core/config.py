@@ -63,4 +63,16 @@ def configure_middlewares(app):
 class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/skylink")
     
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "no-reply@skylink.com")
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "Skylink")
+    MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS", "True").lower() == "true"
+    MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS", "False").lower() == "true"
+    USE_CREDENTIALS: bool = os.getenv("USE_CREDENTIALS", "True").lower() == "true"
+    VALIDATE_CERTS: bool = os.getenv("VALIDATE_CERTS", "True").lower() == "true"
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 settings = Settings()

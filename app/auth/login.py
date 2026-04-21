@@ -81,6 +81,9 @@ async def verify_user(email: str, password: str, ip: str | None, db: AsyncSessio
     if not user.is_active:          # type: ignore
         raise HTTPException(status_code=403, detail="Account is deactivated.")
 
+    if not user.is_verified:        # type: ignore
+        raise HTTPException(status_code=403, detail="Please verify your email address.")
+
     # await clear_attempts(email, ip, db)
     logger.info(f"[AUTH] Login success — user_id={user.id} email={email} ip={ip}")
     return {"id": str(user.id), "email": user.email, "role_id": user.role_id}
