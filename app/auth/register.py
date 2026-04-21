@@ -1,16 +1,22 @@
 import logging
 import uuid
+import secrets
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.auth.models import User, Role
 from app.auth.security import hash_password
 from app.auth.schemas import RegisterRequest
+from app.services.email_service import send_verification_email
 
 logger = logging.getLogger(__name__)
 
 
 async def insert_user(data: dict, db: AsyncSession) -> User:
+    verification_token = secrets.token_urlsafe(32)
+    verification_token_expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    
     user = User(
         id=uuid.uuid4(),
         role_id=data["role_id"],
@@ -20,10 +26,17 @@ async def insert_user(data: dict, db: AsyncSession) -> User:
         password_hash=hash_password(data["password"]),
         phone_number=data.get("phone_number"),
         is_active=True,
+        is_verified=False,
+        verification_token=verification_token,
+        verification_token_expires_at=verification_token_expires_at,
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+    
+    # Send verification email in the background or just await it for now
+    await send_verification_email(user.email, verification_token)
+    
     return user
 
 
