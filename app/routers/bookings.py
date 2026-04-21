@@ -10,7 +10,7 @@ from app.schemas.bookings import (
     BookingCreate, BookingRead, BookingListRead,
     RescheduleRequest, CancelRequest
 )
-from app.services import bookings as booking_service
+from app.services import bookings_service as booking_service
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
 
 @router.get("", response_model=list[BookingListRead])
-async def get_my_bookings(
+async def get_user_bookings(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -35,7 +35,7 @@ async def get_booking(
 
 
 @router.post("", response_model=BookingRead, status_code=201)
-async def book_flight(
+async def create_booking(
     body: BookingCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
