@@ -42,7 +42,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def configure_middlewares(app):
-    # app.add_middleware(SecurityHeadersMiddleware)
+
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,  # replace with frontend URL
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+        allow_credentials=True,
+    )
+
+    #app.add_middleware(SecurityHeadersMiddleware)
 
     # Trusted host
     app.add_middleware(
@@ -50,14 +60,6 @@ def configure_middlewares(app):
         allowed_hosts=ALLOWED_HOSTS,  # replace with your production hosts
     )
 
-    # CORS
-    app.add_middleware(
-        CORSMiddleware,
-        # allow_origins=ALLOWED_ORIGINS,  # replace with frontend URL
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        # allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
-        allow_credentials=True,
-    )
 
 
 class Settings:
