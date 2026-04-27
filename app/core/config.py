@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-env_path = Path(__file__).resolve().parents[1] / ".env"
+env_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=env_path)
 
 DEBUG = os.getenv("DEBUG", "False").lower() == "true"
@@ -42,7 +42,17 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 
 def configure_middlewares(app):
-    # app.add_middleware(SecurityHeadersMiddleware)
+
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,  # replace with frontend URL
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+        allow_credentials=True,
+    )
+
+    #app.add_middleware(SecurityHeadersMiddleware)
 
     # Trusted host
     app.add_middleware(
@@ -50,17 +60,21 @@ def configure_middlewares(app):
         allowed_hosts=ALLOWED_HOSTS,  # replace with your production hosts
     )
 
-    # CORS
-    app.add_middleware(
-        CORSMiddleware,
-        # allow_origins=ALLOWED_ORIGINS,  # replace with frontend URL
-        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        # allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
-        allow_credentials=True,
-    )
 
 
 class Settings:
     DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/skylink")
     
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "no-reply@skylink.com")
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", "587"))
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_FROM_NAME: str = os.getenv("MAIL_FROM_NAME", "Skylink")
+    MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS", "True").lower() == "true"
+    MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS", "False").lower() == "true"
+    USE_CREDENTIALS: bool = os.getenv("USE_CREDENTIALS", "True").lower() == "true"
+    VALIDATE_CERTS: bool = os.getenv("VALIDATE_CERTS", "True").lower() == "true"
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 settings = Settings()
