@@ -4,8 +4,8 @@ from datetime import datetime
 import uuid
 
 PasswordStr = Annotated[str, StringConstraints(min_length=8, max_length=72)]
-NameStr = Annotated[str, StringConstraints(min_length=1, max_length=100, pattern=r'^[A-Za-z\s\-]+$')]
-PhoneStr = Annotated[str, StringConstraints(pattern=r'^\+?\d{7,15}$')]
+NameStr = Annotated[str, StringConstraints(min_length=1, max_length=100)]
+PhoneStr = Annotated[str, StringConstraints(pattern=r'^(\+?63|0)9\d{9}$')]
 
 
 class LoginRequest(BaseModel):
@@ -28,8 +28,8 @@ class UserRead(BaseModel):
     last_name: str
     role_id: int
     is_active: bool
+    phone_number: Optional[str] = None
     created_at: datetime
-
     model_config = {"from_attributes": True}
 
 
