@@ -15,13 +15,16 @@ from app.auth.schemas import (
     ResetPasswordRequest
 )
 from app.database import get_db
-from app.auth.dependencies import require_admin
+from app.auth.dependencies import require_admin, get_current_user
 from app.auth.admin_register import create_admin
 from app.auth.models import User
 from app.services.email_service import send_password_reset_email
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
+@router.get("/me", response_model=UserRead)
+async def me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
@@ -93,3 +96,4 @@ async def register_admin(
 ):
     user = await create_admin(body, db)
     return user
+
