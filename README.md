@@ -20,31 +20,52 @@ A web-based airline reservation system built with FastAPI and Supabase (PostgreS
 
 ```
 skylink-api/
-├── main.py                  # FastAPI app entry point
-├── database.py              # Database connection (SQLAlchemy + Supabase)
+├── app/
+│   ├── main.py              # FastAPI app entry point
+│   ├── database.py          # Database connection
+│   ├── ...
 ├── requirements.txt         # Python dependencies
+├── Dockerfile               # Docker configuration
+├── docker-compose.yml       # Docker Compose configuration
 ├── .env                     # Environment variables (not committed)
 ├── .env.example             # Environment variable template
 ├── .gitignore
-├── .github/
-│   ├── workflows/
-│   │   └── ci.yml           # GitHub Actions CI/CD pipeline
-│   └── pull_request_template.md
-├── app/
-│   ├── routers/
-│   │   ├── auth.py          # User registration and login
-│   │   ├── flights.py       # Flight search and filtering
-│   │   ├── bookings.py      # Ticket booking and cancellation
-│   │   └── admin.py         # Admin dashboard routes
-│   ├── models/
-│   │   └── models.py        # SQLAlchemy database models
-│   ├── schemas/
-│   │   └── schemas.py       # Pydantic request/response schemas
-│   └── services/
-│       └── auth_service.py  # Authentication business logic
-├── migrations/              # Alembic migration files
-└── tests/                   # Pytest test files
+├── .dockerignore            # Docker ignore patterns
+...
 ```
+
+---
+
+## Running with Docker
+
+The easiest way to run the application and its database is using Docker.
+
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/)
+- [Docker Compose](https://docs.docker.com/compose/install/)
+
+### Setup and Run
+1. **Prepare Environment Variables**
+   Ensure you have a `.env` file in the root directory. You can copy it from `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Build and Start**
+   ```bash
+   docker compose up --build
+   ```
+
+This command will:
+- Build the FastAPI application image.
+- Start a PostgreSQL container.
+- Run database migrations automatically.
+- Start the API server at `http://localhost:8000`.
+
+### Useful Commands
+- **Stop containers:** `docker compose down`
+- **View logs:** `docker compose logs -f api`
+- **Run migrations manually:** `docker compose exec api alembic upgrade head`
 
 ---
 

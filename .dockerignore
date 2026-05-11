@@ -1,0 +1,32 @@
+# Python-specific
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Git
+.git/
+.gitignore
+
+# Environment and secrets
+.env
+.env.example
+.venv/
+env/
+ENV/
+
+# Docker-specific
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation and project files
+README.md
+.github/
+
+# OS-specific
+.DS_Store
+Thumbs.db
