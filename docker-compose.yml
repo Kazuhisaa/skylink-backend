@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: skylink_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER:-skylink_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-yourpassword}
+      POSTGRES_DB: ${DB_NAME:-skylink_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: skylink_api
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER:-skylink_user}:${DB_PASSWORD:-yourpassword}@db:5432/${DB_NAME:-skylink_db}
+      - DEBUG=${DEBUG:-True}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_FROM=${MAIL_FROM}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_SERVER=${MAIL_SERVER}
+      - MAIL_FROM_NAME=${MAIL_FROM_NAME}
+      - MAIL_STARTTLS=${MAIL_STARTTLS}
+      - MAIL_SSL_TLS=${MAIL_SSL_TLS}
+      - USE_CREDENTIALS=${USE_CREDENTIALS}
+      - VALIDATE_CERTS=${VALIDATE_CERTS}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,api}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
