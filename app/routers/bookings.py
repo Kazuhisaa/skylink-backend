@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import uuid
@@ -11,6 +11,7 @@ from app.schemas.bookings import (
     RescheduleRequest, CancelRequest
 )
 from app.services import bookings_service as booking_service
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
@@ -18,7 +19,9 @@ router = APIRouter(prefix="/bookings", tags=["Bookings"])
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
 
 @router.get("", response_model=list[BookingListRead])
+@limiter.limit("60/minute")
 async def get_user_bookings(
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -26,7 +29,9 @@ async def get_user_bookings(
 
 
 @router.get("/{booking_id}", response_model=BookingRead)
+@limiter.limit("60/minute")
 async def get_booking(
+    request: Request,
     booking_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -35,7 +40,9 @@ async def get_booking(
 
 
 @router.post("", response_model=BookingRead, status_code=201)
+@limiter.limit("20/minute")
 async def create_booking(
+    request: Request,
     body: BookingCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -44,7 +51,9 @@ async def create_booking(
 
 
 @router.put("/{booking_id}/reschedule", response_model=BookingRead)
+@limiter.limit("20/minute")
 async def reschedule_booking(
+    request: Request,
     booking_id: uuid.UUID,
     body: RescheduleRequest,
     db: AsyncSession = Depends(get_db),
@@ -54,7 +63,9 @@ async def reschedule_booking(
 
 
 @router.delete("/{booking_id}", status_code=204)
+@limiter.limit("20/minute")
 async def cancel_booking(
+    request: Request,
     booking_id: uuid.UUID,
     body: CancelRequest,
     db: AsyncSession = Depends(get_db),
@@ -66,7 +77,9 @@ async def cancel_booking(
 # ─── Admin Endpoints ───────────────────────────────────────────────────────────
 
 @router.get("/admin/all", response_model=list[BookingListRead], dependencies=[Depends(require_admin)])
+@limiter.limit("60/minute")
 async def get_all_bookings(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     return await booking_service.get_all_bookings(db)
