@@ -52,7 +52,7 @@ def configure_middlewares(app):
         allow_credentials=True,
     )
 
-    #app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
 
     # Trusted host
     app.add_middleware(
