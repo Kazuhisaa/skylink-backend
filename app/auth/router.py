@@ -19,14 +19,17 @@ from app.auth.dependencies import require_admin, get_current_user
 from app.auth.admin_register import create_admin
 from app.auth.models import User
 from app.services.email_service import send_password_reset_email
+from app.core.limiter import limiter
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.get("/me", response_model=UserRead)
-async def me(current_user: User = Depends(get_current_user)):
+@limiter.limit("60/minute")
+async def me(request: Request, current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("10/minute")
 async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     ip = request.client.host if request.client else None
     user = await verify_user(body.email, body.password, ip, db)
@@ -34,12 +37,14 @@ async def login(body: LoginRequest, request: Request, db: AsyncSession = Depends
     return TokenResponse(access_token=token)
 
 @router.post("/register", response_model=UserRead, status_code=201)
-async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(body: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
     user = await create_passenger(body, db)
     return user
 
 @router.get("/verify-email")
-async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+@limiter.limit("10/minute")
+async def verify_email(request: Request, token: str = Query(...), db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.verification_token == token))
     user = result.scalar_one_or_none()
 
@@ -60,7 +65,8 @@ async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_d
     return {"message": "Email verified successfully."}
 
 @router.post("/forgot-password")
-async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("3/hour")
+async def forgot_password(body: ForgotPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
 
@@ -74,7 +80,8 @@ async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depend
     return {"message": "If your email is registered, you will receive a password reset link shortly."}
 
 @router.post("/reset-password")
-async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/hour")
+async def reset_password(body: ResetPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).where(User.reset_password_token == body.token))
     user = result.scalar_one_or_none()
 
@@ -89,11 +96,12 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
     return {"message": "Password reset successfully."}
 
 @router.post("/admin/register", response_model=UserRead, status_code=201)
+@limiter.limit("5/minute")
 async def register_admin(
     body: RegisterRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     _: object = Depends(require_admin),
 ):
     user = await create_admin(body, db)
     return user
-
