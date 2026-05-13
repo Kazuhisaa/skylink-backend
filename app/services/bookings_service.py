@@ -2,7 +2,7 @@ import logging
 import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.models.bookings import Booking, Passenger
@@ -94,8 +94,14 @@ async def create_booking(body: BookingCreate, user_id: uuid.UUID, db: AsyncSessi
     return await _get_booking_with_relations(booking.id, db)        # type: ignore
 
 
-async def get_user_bookings(user_id: uuid.UUID, db: AsyncSession) -> list[Booking]:
-    result = await db.execute(
+async def get_user_bookings(
+    user_id: uuid.UUID, 
+    db: AsyncSession,
+    page: int = 1,
+    size: int = 10
+) -> tuple[list[Booking], int]:
+    # Base query
+    query = (
         select(Booking)
         .where(Booking.user_id == user_id)
         .options(
@@ -106,7 +112,18 @@ async def get_user_bookings(user_id: uuid.UUID, db: AsyncSession) -> list[Bookin
         )
         .order_by(Booking.booked_at.desc())
     )
-    return result.scalars().all()  # type: ignore
+
+    # Count total
+    count_query = select(func.count()).select_from(Booking).where(Booking.user_id == user_id)
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Paginate
+    query = query.offset((page - 1) * size).limit(size)
+    result = await db.execute(query)
+    items = result.scalars().all()
+
+    return items, total  # type: ignore
 
 
 async def get_booking(booking_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> Booking:
@@ -203,8 +220,13 @@ async def cancel_booking(
 
 # ─── Admin Services ────────────────────────────────────────────────────────────
 
-async def get_all_bookings(db: AsyncSession) -> list[Booking]:
-    result = await db.execute(
+async def get_all_bookings(
+    db: AsyncSession,
+    page: int = 1,
+    size: int = 10
+) -> tuple[list[Booking], int]:
+    # Base query
+    query = (
         select(Booking)
         .options(
             selectinload(Booking.flight).selectinload(Flight.origin_airport),
@@ -214,4 +236,15 @@ async def get_all_bookings(db: AsyncSession) -> list[Booking]:
         )
         .order_by(Booking.booked_at.desc())
     )
-    return result.scalars().all()  # type: ignore
+
+    # Count total
+    count_query = select(func.count()).select_from(Booking)
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Paginate
+    query = query.offset((page - 1) * size).limit(size)
+    result = await db.execute(query)
+    items = result.scalars().all()
+
+    return items, total  # type: ignore

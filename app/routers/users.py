@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 import uuid
+import math
 
 from app.database import get_db
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.schemas.users import UserRead, UserUpdate, UserStatusUpdate
+from app.schemas.pagination import PaginatedResponse
 from app.services import users_service
 from app.core.limiter import limiter
 
@@ -38,10 +40,22 @@ async def update_me(
 
 # ─── Admin Endpoints ───────────────────────────────────────────────────────────
 
-@router.get("", response_model=list[UserRead], dependencies=[Depends(require_admin)])
+@router.get("", response_model=PaginatedResponse[UserRead], dependencies=[Depends(require_admin)])
 @limiter.limit("60/minute")
-async def get_all_users(request: Request, db: AsyncSession = Depends(get_db)):
-    return await users_service.get_all_users(db)
+async def get_all_users(
+    request: Request,
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db)
+):
+    items, total = await users_service.get_all_users(db, page, size)
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size) if total > 0 else 0
+    )
 
 
 @router.get("/{user_id}", response_model=UserRead, dependencies=[Depends(require_admin)])
