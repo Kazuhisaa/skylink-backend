@@ -2,7 +2,7 @@ import logging
 import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, SeatClass
@@ -54,7 +54,9 @@ async def search_flights(
     destination: str | None = None,
     date=None,
     status: str | None = None,
-) -> list[Flight]:
+    page: int = 1,
+    size: int = 10,
+) -> tuple[list[Flight], int]:
     query = (
         select(Flight)
         .options(
@@ -65,11 +67,11 @@ async def search_flights(
         )
     )
     if origin:
-        query = query.join(Flight.origin_airport).where(
+        query = query.join(Flight.origin_airport, Flight.origin_airport_id == Airport.id).where(
             Airport.iata_code == origin.upper()
         )
     if destination:
-        query = query.join(Flight.destination_airport).where(
+        query = query.join(Flight.destination_airport, Flight.destination_airport_id == Airport.id).where(
             Airport.iata_code == destination.upper()
         )
     if date:
@@ -77,8 +79,30 @@ async def search_flights(
     if status:
         query = query.where(Flight.status == status)
 
+    # Total count query
+    count_query = select(func.count()).select_from(Flight)
+    if origin:
+        count_query = count_query.join(Flight.origin_airport, Flight.origin_airport_id == Airport.id).where(
+            Airport.iata_code == origin.upper()
+        )
+    if destination:
+        count_query = count_query.join(Flight.destination_airport, Flight.destination_airport_id == Airport.id).where(
+            Airport.iata_code == destination.upper()
+        )
+    if date:
+        count_query = count_query.where(Flight.departure_time >= date)
+    if status:
+        count_query = count_query.where(Flight.status == status)
+
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # Apply pagination
+    query = query.offset((page - 1) * size).limit(size)
     result = await db.execute(query)
-    return result.scalars().all()       #type: ignore
+    items = result.scalars().all()
+
+    return items, total  # type: ignore
 
 
 async def get_flight(flight_id: uuid.UUID, db: AsyncSession) -> Flight:

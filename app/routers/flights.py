@@ -13,9 +13,12 @@ from app.core.limiter import limiter
 router = APIRouter(prefix="/flights", tags=["Flights"])
 
 
+import math
+from app.schemas.pagination import PaginatedResponse
+...
 # ─── Passenger ─────────────────────────────────────────────────────────────────
 
-@router.get("", response_model=list[FlightListRead])
+@router.get("", response_model=PaginatedResponse[FlightListRead])
 @limiter.limit("60/minute")
 async def search_flights(
     request: Request,
@@ -23,9 +26,20 @@ async def search_flights(
     destination: Optional[str] = Query(None),
     date: Optional[datetime] = Query(None),
     status: Optional[str] = Query(None),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
-    return await flights_service.search_flights(db, origin, destination, date, status)
+    items, total = await flights_service.search_flights(
+        db, origin, destination, date, status, page, size
+    )
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size) if total > 0 else 0
+    )
 
 
 @router.get("/{flight_id}", response_model=FlightRead)
