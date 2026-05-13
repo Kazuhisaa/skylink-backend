@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from app.core.config import configure_middlewares, debug_mode
 from app.core.limiter import configure_limiter
+from app.core.redis import redis_client
 import logging
 import app.models  
 
@@ -20,6 +21,14 @@ logging.basicConfig(
 )
 
 app = FastAPI(**debug_mode())
+
+@app.on_event("startup")
+async def startup_event():
+    await redis_client.connect()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await redis_client.disconnect()
 
 
 # Apply middleware and limiter

@@ -1,12 +1,14 @@
 import logging
 import uuid
+import json
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, SeatClass
-from app.schemas.flights import FlightCreateWithPricing, FlightUpdate, FlightSeatPricingCreate
+from app.schemas.flights import FlightCreateWithPricing, FlightUpdate, FlightSeatPricingCreate, FlightListRead
+from app.core.redis import redis_client
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +48,11 @@ async def _validate_airport(airport_id: int, db: AsyncSession) -> Airport:
     return airport
 
 
+async def _invalidate_flight_cache():
+    await redis_client.delete_pattern("flights:search:*")
+    logger.info("[CACHE] Invalidated flight search cache")
+
+
 # ─── Passenger Services ────────────────────────────────────────────────────────
 
 async def search_flights(
@@ -56,7 +63,16 @@ async def search_flights(
     status: str | None = None,
     page: int = 1,
     size: int = 10,
-) -> tuple[list[Flight], int]:
+) -> tuple[list[dict], int]:
+    # Generate a cache key based on search parameters
+    cache_key = f"flights:search:{origin}:{destination}:{date}:{status}:{page}:{size}"
+    
+    cached_data = await redis_client.get(cache_key)
+    if cached_data:
+        data = json.loads(cached_data)
+        logger.info(f"[CACHE] Cache hit for key: {cache_key}")
+        return data["items"], data["total"]
+
     query = (
         select(Flight)
         .options(
@@ -100,7 +116,14 @@ async def search_flights(
     # Apply pagination
     query = query.offset((page - 1) * size).limit(size)
     result = await db.execute(query)
-    items = result.scalars().all()
+    flights = result.scalars().all()
+
+    # Convert to dict using Pydantic schema for serialization
+    items = [FlightListRead.model_validate(f).model_dump(mode='json') for f in flights]
+    
+    # Save to cache
+    await redis_client.set(cache_key, json.dumps({"items": items, "total": total}), expire=300)
+    logger.info(f"[CACHE] Cache miss for key: {cache_key}, saved to cache")
 
     return items, total  # type: ignore
 
@@ -169,6 +192,7 @@ async def create_flight(
             ))
 
     await db.commit()
+    await _invalidate_flight_cache()
     logger.info(f"[FLIGHT] Created flight {flight.flight_number} by admin {created_by}")
     return await _get_flight_with_relations(flight.id, db)          # type: ignore
 
@@ -213,6 +237,7 @@ async def update_flight(
         setattr(flight, field, value)
 
     await db.commit()
+    await _invalidate_flight_cache()
     logger.info(f"[FLIGHT] Updated flight {flight.flight_number}")
     return await _get_flight_with_relations(flight_id, db)  # type: ignore
 
@@ -236,4 +261,5 @@ async def delete_flight(flight_id: uuid.UUID, db: AsyncSession) -> None:
 
     await db.delete(flight)
     await db.commit()
+    await _invalidate_flight_cache()
     logger.info(f"[FLIGHT] Deleted flight {flight.flight_number}")
