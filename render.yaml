@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: skylink-backend
+    runtime: docker
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "http://localhost:5173" # Change to your frontend URL
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: DEBUG
+        value: "false"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM
+        sync: false
