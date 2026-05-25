@@ -166,6 +166,7 @@ async def create_flight(
         departure_time=body.departure_time,
         arrival_time=body.arrival_time,
         status=body.status,
+        image_url=body.image_url,
         created_by=created_by,
     )
     db.add(flight)
