@@ -54,6 +54,7 @@ class FlightCreate(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     status: str = "scheduled"
+    image_url: Optional[str] = None
 
     @field_validator("status")
     @classmethod
@@ -80,6 +81,7 @@ class FlightUpdate(BaseModel):
     departure_time: Optional[datetime] = None
     arrival_time: Optional[datetime] = None
     status: Optional[str] = None
+    image_url: Optional[str] = None
 
 
 class FlightRead(BaseModel):
@@ -91,6 +93,7 @@ class FlightRead(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     status: str
+    image_url: Optional[str] = None
     created_at: datetime
     seat_pricing: list[FlightSeatPricingRead] = []
 
@@ -105,6 +108,7 @@ class FlightListRead(BaseModel):
     departure_time: datetime
     arrival_time: datetime
     status: str
+    image_url: Optional[str] = None
     seat_pricing: list[FlightSeatPricingRead] = []
 
     model_config = {"from_attributes": True}

@@ -51,6 +51,7 @@ class Flight(Base):
     departure_time = Column(TIMESTAMP(timezone=True), nullable=False)
     arrival_time = Column(TIMESTAMP(timezone=True), nullable=False)
     status = Column(String(20), nullable=False, default="scheduled")
+    image_url = Column(String(255), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
