@@ -1,12 +1,9 @@
-# tests/test_flights.py
 import uuid
-import pytest
 import pytest_asyncio
 from unittest.mock import AsyncMock, patch
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import delete
 
 from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing
 from app.core.limiter import limiter
