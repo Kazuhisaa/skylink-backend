@@ -182,6 +182,8 @@ async def reschedule_booking(
     booking.total_price = new_pricing.price  # type: ignore
 
     await db.commit()
+    await db.refresh(booking)
+    
     logger.info(f"[BOOKING] Rescheduled booking {booking_id} to flight {body.new_flight_id}")
     return await _get_booking_with_relations(booking_id, db)
 
