@@ -12,7 +12,7 @@ from app.routers.flights import router as flights_router
 from app.routers.bookings import router as bookings_router
 from app.routers.promotions import router as promotions_router
 
-from tests import test_health
+from app.routers import db_conn_check
 
 
 logging.basicConfig(
@@ -52,4 +52,4 @@ app.include_router(promotions_router, prefix=API_PREFIX)
 
 
 # Health check
-app.include_router(test_health.router)
+app.include_router(db_conn_check.router)
