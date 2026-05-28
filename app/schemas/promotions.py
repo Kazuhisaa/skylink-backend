@@ -11,9 +11,10 @@ class PromotionBase(BaseModel):
     discount_text: Optional[str] = None
     badge_text: Optional[str] = None
     badge_type: Optional[str] = None
-    valid_until: date
+    valid_until: str
     image_url: str
-    destination_city: str
+    destination_city: Optional[str] = None
+    destination_code: Optional[str] = None
 
 class PromotionCreate(PromotionBase):
     pass
