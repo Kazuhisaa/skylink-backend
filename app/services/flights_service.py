@@ -55,6 +55,8 @@ async def _invalidate_flight_cache():
 
 # ─── Passenger Services ────────────────────────────────────────────────────────
 
+# ─── Passenger Services ────────────────────────────────────────────────────────
+
 async def search_flights(
     db: AsyncSession,
     origin: str | None = None,
@@ -64,7 +66,6 @@ async def search_flights(
     page: int = 1,
     size: int = 10,
 ) -> tuple[list[dict], int]:
-    # Generate a cache key based on search parameters
     cache_key = f"flights:search:{origin}:{destination}:{date}:{status}:{page}:{size}"
     
     cached_data = await redis_client.get(cache_key)
@@ -82,12 +83,13 @@ async def search_flights(
             selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
         )
     )
+
     if origin:
-        query = query.join(Flight.origin_airport, Flight.origin_airport_id == Airport.id).where(
+        query = query.join(Flight.origin_airport).where(
             Airport.iata_code == origin.upper()
         )
     if destination:
-        query = query.join(Flight.destination_airport, Flight.destination_airport_id == Airport.id).where(
+        query = query.join(Flight.destination_airport).where(
             Airport.iata_code == destination.upper()
         )
     if date:
@@ -98,11 +100,11 @@ async def search_flights(
     # Total count query
     count_query = select(func.count()).select_from(Flight)
     if origin:
-        count_query = count_query.join(Flight.origin_airport, Flight.origin_airport_id == Airport.id).where(
+        count_query = count_query.join(Flight.origin_airport).where(
             Airport.iata_code == origin.upper()
         )
     if destination:
-        count_query = count_query.join(Flight.destination_airport, Flight.destination_airport_id == Airport.id).where(
+        count_query = count_query.join(Flight.destination_airport).where(
             Airport.iata_code == destination.upper()
         )
     if date:
@@ -113,15 +115,12 @@ async def search_flights(
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    # Apply pagination
     query = query.offset((page - 1) * size).limit(size)
     result = await db.execute(query)
     flights = result.scalars().all()
 
-    # Convert to dict using Pydantic schema for serialization
     items = [FlightListRead.model_validate(f).model_dump(mode='json') for f in flights]
     
-    # Save to cache
     await redis_client.set(cache_key, json.dumps({"items": items, "total": total}), expire=300)
     logger.info(f"[CACHE] Cache miss for key: {cache_key}, saved to cache")
 
