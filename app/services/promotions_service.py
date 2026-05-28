@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 async def get_all_promotions(db: AsyncSession) -> List[Promotion]:
     result = await db.execute(select(Promotion).order_by(Promotion.created_at.desc()))
-    return result.scalars().all()
+    return list(result.scalars().all())      
 
 async def get_promotion(promotion_id: uuid.UUID, db: AsyncSession) -> Promotion:
     result = await db.execute(select(Promotion).where(Promotion.id == promotion_id))
