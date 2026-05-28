@@ -35,7 +35,7 @@ async def insert_user(data: dict, db: AsyncSession) -> User:
     await db.refresh(user)
     
     # Send verification email in the background or just await it for now
-    await send_verification_email(user.email, verification_token)
+    await send_verification_email(str(user.email), verification_token)
     
     return user
 
