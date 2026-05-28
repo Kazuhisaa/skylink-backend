@@ -10,6 +10,7 @@ from app.routers.admin import router as admin_router
 from app.routers.users import router as users_router
 from app.routers.flights import router as flights_router
 from app.routers.bookings import router as bookings_router
+from app.routers.promotions import router as promotions_router
 
 from tests import test_health
 
@@ -47,6 +48,7 @@ app.include_router(users_router, prefix="/api/v1")
 # App logic
 app.include_router(flights_router, prefix=API_PREFIX)
 app.include_router(bookings_router, prefix=API_PREFIX)
+app.include_router(promotions_router, prefix=API_PREFIX)
 
 
 # Health check

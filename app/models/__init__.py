@@ -3,3 +3,4 @@ from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatP
 from app.models.bookings import Booking, Passenger
 from app.models.payments import Payment
 from app.models.audit import RescheduleHistory, Cancellation
+from app.models.promotions import Promotion
