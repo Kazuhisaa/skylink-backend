@@ -4,7 +4,7 @@ import json
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, aliased
 
 from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, SeatClass
 from app.schemas.flights import FlightCreateWithPricing, FlightUpdate, FlightSeatPricingCreate, FlightListRead
@@ -67,6 +67,9 @@ async def search_flights(
     size: int = 10,
 ) -> tuple[list[dict], int]:
     cache_key = f"flights:search:{origin}:{destination}:{date}:{status}:{page}:{size}"
+
+    OriginAirport = aliased(Airport, flat=True)
+    DestinationAirport = aliased(Airport, flat=True)
     
     cached_data = await redis_client.get(cache_key)
     if cached_data:
@@ -85,27 +88,28 @@ async def search_flights(
     )
 
     if origin:
-        query = query.join(Flight.origin_airport).where(
-            Airport.iata_code == origin.upper()
+        query = query.join(OriginAirport, Flight.origin_airport_id == OriginAirport.id).where(
+            OriginAirport.iata_code == origin.upper()
         )
     if destination:
-        query = query.join(Flight.destination_airport).where(
-            Airport.iata_code == destination.upper()
+        query = query.join(DestinationAirport, Flight.destination_airport_id == DestinationAirport.id).where(
+            DestinationAirport.iata_code == destination.upper()
         )
+
     if date:
         query = query.where(Flight.departure_time >= date)
     if status:
         query = query.where(Flight.status == status)
 
-    # Total count query
+    # Count query — same fix
     count_query = select(func.count()).select_from(Flight)
     if origin:
-        count_query = count_query.join(Flight.origin_airport).where(
-            Airport.iata_code == origin.upper()
+        count_query = count_query.join(OriginAirport, Flight.origin_airport_id == OriginAirport.id).where(
+            OriginAirport.iata_code == origin.upper()
         )
     if destination:
-        count_query = count_query.join(Flight.destination_airport).where(
-            Airport.iata_code == destination.upper()
+        count_query = count_query.join(DestinationAirport, Flight.destination_airport_id == DestinationAirport.id).where(
+            DestinationAirport.iata_code == destination.upper()
         )
     if date:
         count_query = count_query.where(Flight.departure_time >= date)
