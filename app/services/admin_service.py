@@ -71,15 +71,45 @@ async def create_aircraft(body: AircraftCreate, db: AsyncSession) -> Aircraft:
     existing = await db.execute(select(Aircraft).where(Aircraft.registration == body.registration))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Aircraft with this registration already exists.")
+    
+    total_calculated_seats = sum(config.quantity for config in body.seat_configurations)
+    
     aircraft = Aircraft(
         model=body.model,
-        total_seats=body.total_seats,
+        total_seats=total_calculated_seats,
         registration=body.registration,
     )
     db.add(aircraft)
+    await db.flush() # get aircraft.id
+
+    # Automatic Seat Generation (Row + Letter Pattern: A, B, C, D, E, F)
+    letters = ["A", "B", "C", "D", "E", "F"]
+    current_row = 1
+    letter_idx = 0
+
+    for config in body.seat_configurations:
+        for _ in range(config.quantity):
+            seat_number = f"{current_row}{letters[letter_idx]}"
+            db.add(AircraftSeat(
+                aircraft_id=aircraft.id,
+                seat_class_id=config.seat_class_id,
+                seat_number=seat_number
+            ))
+            
+            # Move to next seat/row
+            letter_idx += 1
+            if letter_idx >= len(letters):
+                letter_idx = 0
+                current_row += 1
+        
+        # Start next class on a new row
+        if letter_idx != 0:
+            letter_idx = 0
+            current_row += 1
+
     await db.commit()
     await db.refresh(aircraft)
-    logger.info(f"[ADMIN] Created aircraft {aircraft.registration}")
+    logger.info(f"[ADMIN] Created aircraft {aircraft.registration} with {total_calculated_seats} auto-generated seats")
     return aircraft
 
 from sqlalchemy.orm import selectinload

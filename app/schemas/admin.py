@@ -35,10 +35,14 @@ class AirportUpdate(BaseModel):
 
 
 # --- Aircraft ---
+class AircraftSeatConfig(BaseModel):
+    seat_class_id: int
+    quantity: int
+
 class AircraftCreate(BaseModel):
     model: str
-    total_seats: int
     registration: str
+    seat_configurations: list[AircraftSeatConfig]
 
 
 class AircraftUpdate(BaseModel):
