@@ -108,7 +108,15 @@ async def create_aircraft(body: AircraftCreate, db: AsyncSession) -> Aircraft:
             current_row += 1
 
     await db.commit()
-    await db.refresh(aircraft)
+    
+    # Re-fetch with seats loaded to avoid MissingGreenlet error in response
+    result = await db.execute(
+        select(Aircraft)
+        .options(selectinload(Aircraft.seats))
+        .where(Aircraft.id == aircraft.id)
+    )
+    aircraft = result.scalar_one()
+    
     logger.info(f"[ADMIN] Created aircraft {aircraft.registration} with {total_calculated_seats} auto-generated seats")
     return aircraft
 
@@ -140,7 +148,15 @@ async def update_aircraft(aircraft_id: int, body: AircraftUpdate, db: AsyncSessi
     for field, value in body.model_dump(exclude_none=True).items():
         setattr(aircraft, field, value)
     await db.commit()
-    await db.refresh(aircraft)
+    
+    # Re-fetch with seats loaded to avoid MissingGreenlet error in response
+    result = await db.execute(
+        select(Aircraft)
+        .options(selectinload(Aircraft.seats))
+        .where(Aircraft.id == aircraft_id)
+    )
+    aircraft = result.scalar_one()
+
     logger.info(f"[ADMIN] Updated aircraft {aircraft_id}")
     return aircraft
 
