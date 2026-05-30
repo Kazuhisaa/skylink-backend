@@ -9,7 +9,7 @@ from app.schemas.admin import BookingReportRead
 from app.services import admin_service
 from app.core.limiter import limiter
 
-from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate
+from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AircraftSeatCreate, AircraftSeatRead
 from app.schemas.flights import AirportRead, AircraftRead, SeatClassRead
 from app.schemas.admin import AirportUpdate, AircraftUpdate, SeatClassUpdate
 
@@ -97,3 +97,21 @@ async def edit_seat_class(request: Request, seat_class_id: int, body: SeatClassU
 @limiter.limit("30/minute")
 async def remove_seat_class(request: Request, seat_class_id: int, db: AsyncSession = Depends(get_db)):
     await admin_service.delete_seat_class(seat_class_id, db)
+
+
+# ─── Aircraft Seats ─────────────────────────────────────────────────────────────
+
+@router.get("/aircraft/{aircraft_id}/seats", response_model=list[AircraftSeatRead], dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def list_aircraft_seats(request: Request, aircraft_id: int, db: AsyncSession = Depends(get_db)):
+    return await admin_service.get_aircraft_seats(aircraft_id, db)
+
+@router.post("/aircraft/{aircraft_id}/seats", response_model=list[AircraftSeatRead], status_code=201, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def add_aircraft_seats(request: Request, aircraft_id: int, body: list[AircraftSeatCreate], db: AsyncSession = Depends(get_db)):
+    return await admin_service.create_aircraft_seats(aircraft_id, body, db)
+
+@router.delete("/aircraft/seats/{seat_id}", status_code=204, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def remove_aircraft_seat(request: Request, seat_id: int, db: AsyncSession = Depends(get_db)):
+    await admin_service.delete_aircraft_seat(seat_id, db)

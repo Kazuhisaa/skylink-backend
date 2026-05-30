@@ -22,8 +22,13 @@ class AircraftRead(BaseModel):
     model: str
     total_seats: int
     registration: str
+    seats: Optional[list["AircraftSeatRead"]] = None
 
     model_config = {"from_attributes": True}
+
+
+from app.schemas.admin import AircraftSeatRead
+AircraftRead.model_rebuild()
 
 
 # --- Seat Class ---
@@ -117,8 +122,6 @@ class FlightListRead(BaseModel):
 # --- Flight Seat Pricing Create (used when creating a flight) ---
 class FlightSeatPricingCreate(BaseModel):
     seat_class_id: int
-    total_seats: int
-    available_seats: int
     price: int
 
 

@@ -28,6 +28,19 @@ class Aircraft(Base):
     registration = Column(String(20), unique=True, nullable=False)
 
     flights = relationship("Flight", back_populates="aircraft")
+    seats = relationship("AircraftSeat", back_populates="aircraft", cascade="all, delete-orphan")
+
+
+class AircraftSeat(Base):
+    __tablename__ = "aircraft_seats"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    aircraft_id = Column(Integer, ForeignKey("aircraft.id"), nullable=False)
+    seat_class_id = Column(Integer, ForeignKey("seat_classes.id"), nullable=False)
+    seat_number = Column(String(10), nullable=False)
+
+    aircraft = relationship("Aircraft", back_populates="seats")
+    seat_class = relationship("SeatClass")
 
 
 class SeatClass(Base):
@@ -38,6 +51,7 @@ class SeatClass(Base):
 
     flight_pricing = relationship("FlightSeatPricing", back_populates="seat_class")
     bookings = relationship("Booking", back_populates="seat_class")
+    aircraft_seats = relationship("AircraftSeat", back_populates="seat_class")
 
 
 class Flight(Base):
