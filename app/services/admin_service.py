@@ -5,12 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.models.bookings import Booking
 from app.schemas.admin import BookingReportRead
-
-logger = logging.getLogger(__name__)
-
 from app.models.flights import Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
 from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate
 from fastapi import HTTPException
+
+logger = logging.getLogger(__name__)
+
 
 # ─── Airport ───────────────────────────────────────────────────────────────────
 
