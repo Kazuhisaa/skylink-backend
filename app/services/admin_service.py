@@ -82,8 +82,14 @@ async def create_aircraft(body: AircraftCreate, db: AsyncSession) -> Aircraft:
     logger.info(f"[ADMIN] Created aircraft {aircraft.registration}")
     return aircraft
 
+from sqlalchemy.orm import selectinload
+
 async def get_aircraft(db: AsyncSession) -> list[Aircraft]:
-    result = await db.execute(select(Aircraft).order_by(Aircraft.model))
+    result = await db.execute(
+        select(Aircraft)
+        .options(selectinload(Aircraft.seats))
+        .order_by(Aircraft.model)
+    )
     return list(result.scalars().all())
 
 async def update_aircraft(aircraft_id: int, body: AircraftUpdate, db: AsyncSession) -> Aircraft:
