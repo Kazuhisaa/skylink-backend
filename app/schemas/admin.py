@@ -54,3 +54,17 @@ class SeatClassCreate(BaseModel):
 
 class SeatClassUpdate(BaseModel):
     name: Optional[str] = None
+
+
+# --- Aircraft Seat ---
+class AircraftSeatCreate(BaseModel):
+    seat_class_id: int
+    seat_number: str
+
+class AircraftSeatRead(BaseModel):
+    id: int
+    aircraft_id: int
+    seat_class_id: int
+    seat_number: str
+
+    model_config = {"from_attributes": True}

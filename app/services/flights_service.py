@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload, aliased
 
-from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, SeatClass
+from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, SeatClass, AircraftSeat
 from app.schemas.flights import FlightCreateWithPricing, FlightUpdate, FlightSeatPricingCreate, FlightListRead
 from app.core.redis import redis_client
 
@@ -148,6 +148,22 @@ async def create_flight(
     await _validate_airport(body.origin_airport_id, db)
     await _validate_airport(body.destination_airport_id, db)
 
+    # Fetch aircraft seats to derive counts
+    seats_result = await db.execute(
+        select(AircraftSeat).where(AircraftSeat.aircraft_id == body.aircraft_id)
+    )
+    aircraft_seats = seats_result.scalars().all()
+    if not aircraft_seats:
+         raise HTTPException(
+            status_code=400,
+            detail="The selected aircraft has no seat configuration. Please add seats to the aircraft first."
+        )
+
+    # Count seats per class
+    class_counts = {}
+    for seat in aircraft_seats:
+        class_counts[seat.seat_class_id] = class_counts.get(seat.seat_class_id, 0) + 1
+
     if body.origin_airport_id == body.destination_airport_id:
         raise HTTPException(
             status_code=400,
@@ -177,23 +193,39 @@ async def create_flight(
 
     # Add seat pricing if provided
     if seat_pricing:
-        for pricing in seat_pricing:
-            # validate seat class exists
-            sc_result = await db.execute(
-                select(SeatClass).where(SeatClass.id == pricing.seat_class_id)
+        provided_classes = {p.seat_class_id for p in seat_pricing}
+        config_classes = set(class_counts.keys())
+
+        # Check if all provided classes exist in aircraft config
+        if not provided_classes.issubset(config_classes):
+            invalid = provided_classes - config_classes
+            raise HTTPException(
+                status_code=400,
+                detail=f"Seat classes {invalid} are not configured for this aircraft."
             )
-            if not sc_result.scalar_one_or_none():
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Seat class {pricing.seat_class_id} not found."
-                )
+
+        # Check if all aircraft config classes have a price
+        if config_classes != provided_classes:
+            missing = config_classes - provided_classes
+            raise HTTPException(
+                status_code=400,
+                detail=f"Missing pricing for seat classes: {missing}."
+            )
+
+        for pricing in seat_pricing:
+            total_seats = class_counts[pricing.seat_class_id]
             db.add(FlightSeatPricing(
                 flight_id=flight.id,
                 seat_class_id=pricing.seat_class_id,
-                total_seats=pricing.total_seats,
-                available_seats=pricing.available_seats,
+                total_seats=total_seats,
+                available_seats=total_seats,
                 price=pricing.price,
             ))
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Seat pricing must be provided for all classes configured for this aircraft."
+        )
 
     await db.commit()
     await _invalidate_flight_cache()

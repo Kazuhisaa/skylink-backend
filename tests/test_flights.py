@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from httpx import AsyncClient
 from sqlalchemy import delete
 
-from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing
+from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing, AircraftSeat
 from app.core.limiter import limiter
 
 
@@ -52,6 +52,15 @@ async def seed_flight_data(test_session_factory, seed_users):
             business = SeatClass(id=2, name="Business")
 
             session.add_all([manila, cebu, davao, aircraft, economy, business])
+            await session.flush()
+
+            # Add seats to aircraft
+            seats = []
+            for i in range(1, 151):
+                seats.append(AircraftSeat(aircraft_id=1, seat_class_id=1, seat_number=f"{i}E"))
+            for i in range(1, 31):
+                seats.append(AircraftSeat(aircraft_id=1, seat_class_id=2, seat_number=f"{i}B"))
+            session.add_all(seats)
 
     yield {
         "manila_id": 1,
@@ -154,14 +163,10 @@ def valid_flight_payload(
         "seat_pricing": [
             {
                 "seat_class_id": economy_id,
-                "total_seats": 150,
-                "available_seats": 150,
                 "price": 480000,
             },
             {
                 "seat_class_id": business_id,
-                "total_seats": 30,
-                "available_seats": 30,
                 "price": 1200000,
             },
         ],

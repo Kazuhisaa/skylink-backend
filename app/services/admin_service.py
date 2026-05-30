@@ -8,8 +8,8 @@ from app.schemas.admin import BookingReportRead
 
 logger = logging.getLogger(__name__)
 
-from app.models.flights import Airport, Aircraft, SeatClass, FlightSeatPricing
-from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate
+from app.models.flights import Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
+from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate
 from fastapi import HTTPException
 
 # ─── Airport ───────────────────────────────────────────────────────────────────
@@ -210,5 +210,73 @@ async def get_booking_report(
         date_from=date_from,
         date_to=date_to,
     )
+
+
+# ─── Aircraft Seat ─────────────────────────────────────────────────────────────
+
+async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate], db: AsyncSession) -> list[AircraftSeat]:
+    # Check if aircraft exists
+    aircraft_result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))
+    if not aircraft_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Aircraft not found.")
+
+    new_seats = []
+    for seat_data in seats:
+        # Check if seat number already exists for this aircraft
+        existing = await db.execute(
+            select(AircraftSeat).where(
+                AircraftSeat.aircraft_id == aircraft_id,
+                AircraftSeat.seat_number == seat_data.seat_number
+            )
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=409, 
+                detail=f"Seat {seat_data.seat_number} already exists for this aircraft."
+            )
+        
+        seat = AircraftSeat(
+            aircraft_id=aircraft_id,
+            seat_class_id=seat_data.seat_class_id,
+            seat_number=seat_data.seat_number
+        )
+        db.add(seat)
+        new_seats.append(seat)
+    
+    # Update total_seats in Aircraft
+    count_result = await db.execute(select(func.count()).where(AircraftSeat.aircraft_id == aircraft_id))
+    aircraft = aircraft_result.scalar_one()
+    aircraft.total_seats = count_result.scalar() or 0
+
+    await db.commit()
+    logger.info(f"[ADMIN] Created {len(new_seats)} seats for aircraft {aircraft_id}")
+    return new_seats
+
+async def get_aircraft_seats(aircraft_id: int, db: AsyncSession) -> list[AircraftSeat]:
+    result = await db.execute(
+        select(AircraftSeat)
+        .where(AircraftSeat.aircraft_id == aircraft_id)
+        .order_by(AircraftSeat.seat_number)
+    )
+    return list(result.scalars().all())
+
+async def delete_aircraft_seat(seat_id: int, db: AsyncSession) -> None:
+    result = await db.execute(select(AircraftSeat).where(AircraftSeat.id == seat_id))
+    seat = result.scalar_one_or_none()
+    if not seat:
+        raise HTTPException(status_code=404, detail="Seat not found.")
+    
+    aircraft_id = seat.aircraft_id
+    await db.delete(seat)
+    await db.commit()
+
+    # Update total_seats
+    aircraft_result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))
+    aircraft = aircraft_result.scalar_one()
+    count_result = await db.execute(select(func.count()).where(AircraftSeat.aircraft_id == aircraft_id))
+    aircraft.total_seats = count_result.scalar() or 0
+    await db.commit()
+
+    logger.info(f"[ADMIN] Deleted aircraft seat {seat_id}")
 
 
