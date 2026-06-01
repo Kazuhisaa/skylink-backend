@@ -3,7 +3,6 @@ from app.core.config import configure_middlewares, debug_mode
 from app.core.limiter import configure_limiter
 from app.core.redis import redis_client
 import logging
-import app.models  
 
 from app.auth import router as authentications
 from app.routers.admin import router as admin_router
