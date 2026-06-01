@@ -11,31 +11,29 @@ from app.models.audit import RescheduleHistory, Cancellation
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════
 
+# test_bookings.py
+
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def seed_booking_data(test_session_factory, seed_users):
-    """Seed airports, aircraft, seat classes, and one scheduled flight."""
     async with test_session_factory() as session:
         async with session.begin():
-            session.add_all([
-                Airport(id=10, iata_code="MNL", name="Ninoy Aquino International Airport", city="Manila", country="Philippines", timezone="Asia/Manila"),
-                Airport(id=11, iata_code="CEB", name="Mactan-Cebu International Airport", city="Cebu", country="Philippines", timezone="Asia/Manila"),
-                Aircraft(id=10, model="Airbus A320", total_seats=180, registration="RP-C9999"),
-                SeatClass(id=10, name="Economy"),
-                SeatClass(id=11, name="Business"),
-            ])
+            origin = Airport(iata_code="BK1", name="Booking Origin Airport", city="Manila", country="Philippines", timezone="Asia/Manila")
+            dest = Airport(iata_code="BK2", name="Booking Destination Airport", city="Cebu", country="Philippines", timezone="Asia/Manila")
+            aircraft = Aircraft(model="Airbus A320-BK", total_seats=180, registration="RP-C9999")
+            economy = SeatClass(name="Economy-BK")
+            business = SeatClass(name="Business-BK")
+            session.add_all([origin, dest, aircraft, economy, business])
+            await session.flush()  # populates .id on all objects
 
-    flight_id = uuid.uuid4()
-    cancelled_flight_id = uuid.uuid4()
-
-    async with test_session_factory() as session:
-        async with session.begin():
+            flight_id = uuid.uuid4()
+            cancelled_flight_id = uuid.uuid4()
             session.add_all([
                 Flight(
                     id=flight_id,
                     flight_number="BK-001",
-                    aircraft_id=10,
-                    origin_airport_id=10,
-                    destination_airport_id=11,
+                    aircraft_id=aircraft.id,
+                    origin_airport_id=origin.id,
+                    destination_airport_id=dest.id,
                     departure_time=datetime(2025, 12, 1, 8, 0, tzinfo=timezone.utc),
                     arrival_time=datetime(2025, 12, 1, 10, 0, tzinfo=timezone.utc),
                     status="scheduled",
@@ -44,39 +42,42 @@ async def seed_booking_data(test_session_factory, seed_users):
                 Flight(
                     id=cancelled_flight_id,
                     flight_number="BK-002",
-                    aircraft_id=10,
-                    origin_airport_id=10,
-                    destination_airport_id=11,
+                    aircraft_id=aircraft.id,
+                    origin_airport_id=origin.id,
+                    destination_airport_id=dest.id,
                     departure_time=datetime(2025, 12, 2, 8, 0, tzinfo=timezone.utc),
                     arrival_time=datetime(2025, 12, 2, 10, 0, tzinfo=timezone.utc),
                     status="cancelled",
                     created_by=seed_users["admin"].id,
                 ),
-                FlightSeatPricing(flight_id=flight_id, seat_class_id=10, total_seats=150, available_seats=150, price=480000),
-                FlightSeatPricing(flight_id=flight_id, seat_class_id=11, total_seats=30, available_seats=30, price=1200000),
-                FlightSeatPricing(flight_id=cancelled_flight_id, seat_class_id=10, total_seats=150, available_seats=150, price=480000),
+                FlightSeatPricing(flight_id=flight_id, seat_class_id=economy.id, total_seats=150, available_seats=150, price=480000),
+                FlightSeatPricing(flight_id=flight_id, seat_class_id=business.id, total_seats=30, available_seats=30, price=1200000),
+                FlightSeatPricing(flight_id=cancelled_flight_id, seat_class_id=economy.id, total_seats=150, available_seats=150, price=480000),
             ])
 
     yield {
         "flight_id": flight_id,
         "cancelled_flight_id": cancelled_flight_id,
-        "economy_id": 10,
-        "business_id": 11,
+        "economy_id": economy.id,   # ← now uses DB-assigned id
+        "business_id": business.id,
+        "aircraft_id": aircraft.id,
+        "origin_id": origin.id,
+        "dest_id": dest.id,
         "admin": seed_users["admin"],
         "passenger": seed_users["passenger"],
     }
 
     async with test_session_factory() as session:
-            async with session.begin():
-                await session.execute(delete(RescheduleHistory))
-                await session.execute(delete(Cancellation))
-                await session.execute(delete(Passenger))
-                await session.execute(delete(Booking))
-                await session.execute(delete(FlightSeatPricing))
-                await session.execute(delete(Flight).where(Flight.id.in_([flight_id, cancelled_flight_id])))
-                await session.execute(delete(SeatClass).where(SeatClass.id.in_([10, 11])))
-                await session.execute(delete(Aircraft).where(Aircraft.id == 10))
-                await session.execute(delete(Airport).where(Airport.id.in_([10, 11])))
+        async with session.begin():
+            await session.execute(delete(RescheduleHistory))
+            await session.execute(delete(Cancellation))
+            await session.execute(delete(Passenger))
+            await session.execute(delete(Booking).where(Booking.flight_id.in_([flight_id, cancelled_flight_id])))
+            await session.execute(delete(FlightSeatPricing).where(FlightSeatPricing.flight_id.in_([flight_id, cancelled_flight_id])))
+            await session.execute(delete(Flight).where(Flight.id.in_([flight_id, cancelled_flight_id])))
+            await session.execute(delete(SeatClass).where(SeatClass.id.in_([economy.id, business.id])))
+            await session.execute(delete(Aircraft).where(Aircraft.id == aircraft.id))
+            await session.execute(delete(Airport).where(Airport.id.in_([origin.id, dest.id])))
 
 
 @pytest_asyncio.fixture(loop_scope="session")
@@ -301,9 +302,9 @@ class TestRescheduleBooking:
                 session.add(Flight(
                     id=new_flight_id,
                     flight_number="BK-RSC",
-                    aircraft_id=10,
-                    origin_airport_id=10,
-                    destination_airport_id=11,
+                    aircraft_id=seed_booking_data["aircraft_id"],
+                    origin_airport_id=seed_booking_data["origin_id"],
+                    destination_airport_id=seed_booking_data["dest_id"],
                     departure_time=datetime(2025, 12, 5, 8, 0, tzinfo=timezone.utc),
                     arrival_time=datetime(2025, 12, 5, 10, 0, tzinfo=timezone.utc),
                     status="scheduled",
