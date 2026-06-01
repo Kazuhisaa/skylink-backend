@@ -8,8 +8,8 @@ from sqlalchemy import delete
 from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing, AircraftSeat
 from app.models.bookings import Booking, Passenger
 
-from httpx import AsyncClient, ASGITransport
-from app.main import app
+from httpx import AsyncClient
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════

@@ -6,7 +6,7 @@ import uuid
 
 from app.database import get_db
 from app.auth.dependencies import get_current_user, require_admin
-from app.schemas.flights import FlightCreate, FlightUpdate, FlightRead, FlightListRead, FlightCreateWithPricing
+from app.schemas.flights import FlightUpdate, FlightRead, FlightListRead, FlightCreateWithPricing
 from app.services import flights_service
 from app.core.limiter import limiter
 

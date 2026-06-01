@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload, aliased
 
-from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, SeatClass, AircraftSeat
+from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, AircraftSeat
 from app.schemas.flights import FlightCreateWithPricing, FlightUpdate, FlightSeatPricingCreate, FlightListRead
 from app.core.redis import redis_client
 
