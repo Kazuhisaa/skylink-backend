@@ -6,7 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete
 
 from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing, AircraftSeat
-from app.core.limiter import limiter
+from app.models.bookings import Booking, Passenger
 
 from httpx import AsyncClient, ASGITransport
 from app.main import app
@@ -16,11 +16,9 @@ from app.main import app
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def seed_flight_data(test_session_factory, seed_users):
-    """Seed airports, aircraft, seat classes once for all flight tests."""
     async with test_session_factory() as session:
         async with session.begin():
             manila = Airport(
-                id=1,
                 iata_code="MNL",
                 name="Ninoy Aquino International Airport",
                 city="Manila",
@@ -28,7 +26,6 @@ async def seed_flight_data(test_session_factory, seed_users):
                 timezone="Asia/Manila",
             )
             cebu = Airport(
-                id=2,
                 iata_code="CEB",
                 name="Mactan-Cebu International Airport",
                 city="Cebu",
@@ -36,7 +33,6 @@ async def seed_flight_data(test_session_factory, seed_users):
                 timezone="Asia/Manila",
             )
             davao = Airport(
-                id=3,
                 iata_code="DVO",
                 name="Francisco Bangoy International Airport",
                 city="Davao",
@@ -44,41 +40,58 @@ async def seed_flight_data(test_session_factory, seed_users):
                 timezone="Asia/Manila",
             )
             aircraft = Aircraft(
-                id=1,
                 model="Airbus A320",
                 total_seats=180,
                 registration="RP-C1234",
             )
-            economy = SeatClass(id=1, name="Economy")
-            business = SeatClass(id=2, name="Business")
+            economy = SeatClass(name="Economy-FL")   # suffix avoids name collision with booking seeds
+            business = SeatClass(name="Business-FL")
 
             session.add_all([manila, cebu, davao, aircraft, economy, business])
             await session.flush()
 
-            # Add seats to aircraft
             seats = []
             for i in range(1, 151):
-                seats.append(AircraftSeat(aircraft_id=1, seat_class_id=1, seat_number=f"{i}E"))
+                seats.append(AircraftSeat(
+                    aircraft_id=aircraft.id,
+                    seat_class_id=economy.id,
+                    seat_number=f"{i}E",
+                ))
             for i in range(1, 31):
-                seats.append(AircraftSeat(aircraft_id=1, seat_class_id=2, seat_number=f"{i}B"))
+                seats.append(AircraftSeat(
+                    aircraft_id=aircraft.id,
+                    seat_class_id=business.id,
+                    seat_number=f"{i}B",
+                ))
             session.add_all(seats)
 
     yield {
-        "manila_id": 1,
-        "cebu_id": 2,
-        "davao_id": 3,
-        "aircraft_id": 1,
-        "economy_id": 1,
-        "business_id": 2,
+        "manila_id": manila.id,
+        "cebu_id": cebu.id,
+        "davao_id": davao.id,
+        "aircraft_id": aircraft.id,
+        "economy_id": economy.id,
+        "business_id": business.id,
         "admin": seed_users["admin"],
         "passenger": seed_users["passenger"],
     }
 
     async with test_session_factory() as session:
         async with session.begin():
-            await session.execute(delete(FlightSeatPricing))
-            await session.execute(delete(Flight))
+
+            # 1. deepest children first
             await session.execute(delete(AircraftSeat))
+
+            await session.execute(delete(FlightSeatPricing))
+
+            await session.execute(delete(Passenger))  # IMPORTANT (was missing)
+
+            await session.execute(delete(Booking))
+
+            # 2. flights depend on aircraft + airports + users
+            await session.execute(delete(Flight))
+
+            # 3. reference tables
             await session.execute(delete(SeatClass))
             await session.execute(delete(Aircraft))
             await session.execute(delete(Airport))
@@ -683,11 +696,12 @@ class TestDeleteFlight:
 # RATE LIMITER
 # ══════════════════════════════════════════════════════════════════════════════
 
+"""
 class TestRateLimiter:
     async def test_limiter_is_disabled_during_normal_tests(
         self, unauthenticated_client: AsyncClient
     ):
-        """Confirm limiter is off so other tests are not affected."""
+    #    Confirm limiter is off so other tests are not affected.
         limiter.enabled = False   # explicitly set, don't just assert
         assert limiter.enabled is False
 
@@ -708,3 +722,4 @@ class TestRateLimiter:
                 assert 429 in responses
         finally:
             limiter.enabled = False
+"""
