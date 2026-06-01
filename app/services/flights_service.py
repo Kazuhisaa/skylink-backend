@@ -22,7 +22,7 @@ async def _get_flight_with_relations(flight_id: uuid.UUID, db: AsyncSession) -> 
         .options(
             selectinload(Flight.origin_airport),
             selectinload(Flight.destination_airport),
-            selectinload(Flight.aircraft),
+            selectinload(Flight.aircraft).selectinload(Aircraft.seats),
             selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
         )
     )
@@ -82,7 +82,7 @@ async def search_flights(
         .options(
             selectinload(Flight.origin_airport),
             selectinload(Flight.destination_airport),
-            selectinload(Flight.aircraft),
+            selectinload(Flight.aircraft).selectinload(Aircraft.seats),
             selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
         )
     )
