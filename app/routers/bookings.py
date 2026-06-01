@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
 import uuid
 import math
 
