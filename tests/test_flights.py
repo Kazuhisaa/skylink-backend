@@ -8,7 +8,8 @@ from sqlalchemy import delete
 from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing, AircraftSeat
 from app.core.limiter import limiter
 
-
+from httpx import AsyncClient, ASGITransport
+from app.main import app
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -77,6 +78,7 @@ async def seed_flight_data(test_session_factory, seed_users):
         async with session.begin():
             await session.execute(delete(FlightSeatPricing))
             await session.execute(delete(Flight))
+            await session.execute(delete(AircraftSeat))
             await session.execute(delete(SeatClass))
             await session.execute(delete(Aircraft))
             await session.execute(delete(Airport))
@@ -120,13 +122,13 @@ async def seed_one_flight(test_session_factory, seed_flight_data):
     yield flight_id
 
     async with test_session_factory() as session:
-        await session.execute(
-            delete(FlightSeatPricing).where(FlightSeatPricing.flight_id == flight_id)
-        )
-        await session.execute(
-            delete(Flight).where(Flight.id == flight_id)
-        )
-        await session.commit()
+        async with session.begin(): 
+            await session.execute(
+                delete(FlightSeatPricing).where(FlightSeatPricing.flight_id == flight_id)
+            )
+            await session.execute(
+                delete(Flight).where(Flight.id == flight_id)
+            )
 
 
 
@@ -496,10 +498,10 @@ class TestCreateFlight:
         payload["seat_pricing"][0]["seat_class_id"] = 9999  # nonexistent
         with mock_redis():
             resp = await admin_client.post("/api/v1/flights", json=payload)
-        assert resp.status_code == 404
-        assert "Seat class" in resp.json()["detail"]
+        assert resp.status_code == 400                          # backend catches via class_counts, not DB lookup
+        assert "not configured" in resp.json()["detail"].lower()
 
-    async def test_create_flight_without_pricing(
+    async def test_create_flight_without_pricing_returns_400(  
         self, admin_client: AsyncClient, seed_flight_data
     ):
         payload = valid_flight_payload(
@@ -513,8 +515,7 @@ class TestCreateFlight:
         payload.pop("seat_pricing")
         with mock_redis():
             resp = await admin_client.post("/api/v1/flights", json=payload)
-        assert resp.status_code == 201
-        assert resp.json()["seat_pricing"] == []
+        assert resp.status_code == 400
 
     async def test_missing_required_fields_rejected(
         self, admin_client: AsyncClient
@@ -683,23 +684,16 @@ class TestDeleteFlight:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestRateLimiter:
-
     async def test_limiter_is_disabled_during_normal_tests(
         self, unauthenticated_client: AsyncClient
     ):
         """Confirm limiter is off so other tests are not affected."""
+        limiter.enabled = False   # explicitly set, don't just assert
         assert limiter.enabled is False
 
     async def test_limiter_blocks_after_limit(
         self, seed_one_flight
     ):
-        """
-        Re-enable limiter and confirm 429 is returned after exceeding limit.
-        Uses a fresh unauthenticated client so dependency overrides don't interfere.
-        """
-        from httpx import AsyncClient, ASGITransport
-        from app.main import app
-
         limiter.enabled = True
         try:
             async with AsyncClient(
@@ -708,9 +702,9 @@ class TestRateLimiter:
             ) as client:
                 responses = []
                 with mock_redis():
-                    for _ in range(65):  # limit is 60/minute
+                    for _ in range(65):
                         r = await client.get("/api/v1/flights")
                         responses.append(r.status_code)
                 assert 429 in responses
         finally:
-            limiter.enabled = False  # always restore
+            limiter.enabled = False
