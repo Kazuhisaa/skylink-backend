@@ -1,4 +1,5 @@
 name: CI Quality Checks
+
 on:
   pull_request:
     branches: [main, master]
@@ -8,25 +9,44 @@ on:
 jobs:
   quality-gate:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://user:password@localhost/skylink
+      TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+
+      JWT_SECRET_KEY: test-secret-key
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      BCRYPT_ROUNDS: 12
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          node-version: '20'
+          python-version: "3.12"
 
       - name: Install Dependencies
         run: |
-          if [ -f package.json ]; then npm install; fi
-          if [ -f composer.json ]; then composer install --no-interaction --prefer-dist; fi
-
-      - name: Run Linting
-        run: echo "Linting complete. No issues found."
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
       - name: Run Tests
-        run: echo "All tests passed successfully."
-
-      - name: Security Scan
-        run: echo "Security scan finished. No vulnerabilities detected."
+        run: pytest -v
