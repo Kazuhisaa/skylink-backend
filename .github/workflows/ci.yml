@@ -28,7 +28,7 @@ jobs:
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
       TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
-      JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+      JWT_SECRET_KEY: test-secret-key
 
     steps:
       - name: Checkout Code
