@@ -28,14 +28,14 @@ async def seed_admin_report_data(test_session_factory, seed_users):
     admin_user = seed_users["admin"]
 
     origin = Airport(
-        iata_code="MNL",
+        iata_code="AD1",
         name="Ninoy Aquino International Airport",
         city="Manila",
         country="Philippines",
         timezone="Asia/Manila",
     )
     destination = Airport(
-        iata_code="CEB",
+        iata_code="AD2",
         name="Mactan-Cebu International Airport",
         city="Cebu",
         country="Philippines",
