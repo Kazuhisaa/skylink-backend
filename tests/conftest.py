@@ -11,7 +11,7 @@ from pathlib import Path
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.pool import NullPool
-from sqlalchemy import delete
+from sqlalchemy import delete, text
 
 from app.main import app
 from app.database import Base, get_db          # get_db lives here
@@ -33,17 +33,18 @@ assert TEST_DATABASE_URL, "TEST_DATABASE_URL is not set in .env"
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def test_engine():
     engine = create_async_engine(
-        TEST_DATABASE_URL,      #type: ignore
+        TEST_DATABASE_URL,
         poolclass=NullPool,
         connect_args={"statement_cache_size": 0},
     )
+
     async with engine.begin() as conn:
+        await conn.execute(text("DROP SCHEMA public CASCADE"))
+        await conn.execute(text("CREATE SCHEMA public"))
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
 
 
@@ -61,9 +62,8 @@ async def test_session_factory(test_engine):
 @pytest_asyncio.fixture(loop_scope="session")
 async def db_session(test_session_factory):
     async with test_session_factory() as session:
-        async with session.begin():
-            yield session
-            await session.rollback()
+        yield session
+        await session.rollback()
 
 
 # ── Seed roles + users once per session ──────────────────────────────────────

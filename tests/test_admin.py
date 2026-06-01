@@ -111,6 +111,7 @@ async def seed_admin_report_data(test_session_factory, seed_users):
 
     async with test_session_factory() as session:
         async with session.begin():
+            from app.models.flights import AircraftSeat
             await session.execute(
                 delete(Booking).where(
                     Booking.id.in_([
@@ -121,11 +122,10 @@ async def seed_admin_report_data(test_session_factory, seed_users):
                 )
             )
             await session.execute(delete(Flight).where(Flight.id == flight.id))
+            await session.execute(delete(AircraftSeat).where(AircraftSeat.seat_class_id == seat_class.id))
             await session.execute(delete(SeatClass).where(SeatClass.id == seat_class.id))
             await session.execute(delete(Aircraft).where(Aircraft.id == aircraft.id))
-            await session.execute(
-                delete(Airport).where(Airport.id.in_([origin.id, destination.id]))
-            )
+            await session.execute(delete(Airport).where(Airport.id.in_([origin.id, destination.id])))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -407,112 +407,85 @@ class TestAdminAirportCRUD:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestAdminAircraftCRUD:
-
     async def test_admin_can_list_aircraft(self, admin_client: AsyncClient):
         resp = await admin_client.get("/api/v1/admin/aircraft")
-
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_admin_can_create_aircraft(self, admin_client: AsyncClient):
+    async def test_admin_can_create_aircraft(
+        self, admin_client: AsyncClient, seed_admin_report_data
+    ):
         payload = {
             "model": "Airbus A321",
-            "total_seats": 220,
             "registration": "RP-TST01",
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 220},
+            ],
         }
-
         resp = await admin_client.post("/api/v1/admin/aircraft", json=payload)
-
         assert resp.status_code == 201
-
         data = resp.json()
-
         assert data["registration"] == "RP-TST01"
 
     async def test_duplicate_aircraft_registration_returns_409(
-        self,
-        admin_client: AsyncClient,
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
         payload = {
             "model": "Boeing 777",
-            "total_seats": 300,
-            "registration": "RP-DUP01",
+            "registration": "RP-AC-DUP01",   # unique prefix avoids collision with SeatClass class
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 300},
+            ],
         }
-
         first = await admin_client.post("/api/v1/admin/aircraft", json=payload)
-
         assert first.status_code == 201
-
         second = await admin_client.post("/api/v1/admin/aircraft", json=payload)
-
         assert second.status_code == 409
 
-    async def test_admin_can_update_aircraft(self, admin_client: AsyncClient):
+    async def test_admin_can_update_aircraft(
+        self, admin_client: AsyncClient, seed_admin_report_data
+    ):
         create_payload = {
             "model": "ATR 72",
-            "total_seats": 70,
-            "registration": "RP-UPD01",
+            "registration": "RP-AC-UPD01",   # unique prefix
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 70},
+            ],
         }
-
-        created = await admin_client.post(
-            "/api/v1/admin/aircraft",
-            json=create_payload,
-        )
-
+        created = await admin_client.post("/api/v1/admin/aircraft", json=create_payload)
+        assert created.status_code == 201
         aircraft_id = created.json()["id"]
-
-        update_payload = {
-            "model": "ATR 72-600",
-            "total_seats": 78,
-            "registration": "RP-UPD01",
-        }
 
         updated = await admin_client.put(
             f"/api/v1/admin/aircraft/{aircraft_id}",
-            json=update_payload,
+            json={"model": "ATR 72-600", "registration": "RP-AC-UPD01"},
         )
-
         assert updated.status_code == 200
-
         data = updated.json()
-
         assert data["model"] == "ATR 72-600"
-        assert data["total_seats"] == 78
 
     async def test_admin_can_delete_unused_aircraft(
-        self,
-        admin_client: AsyncClient,
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
         payload = {
             "model": "Delete Aircraft",
-            "total_seats": 100,
-            "registration": "RP-DEL01",
+            "registration": "RP-AC-DEL01",   # unique prefix
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 100},
+            ],
         }
-
-        created = await admin_client.post(
-            "/api/v1/admin/aircraft",
-            json=payload,
-        )
-
+        created = await admin_client.post("/api/v1/admin/aircraft", json=payload)
+        assert created.status_code == 201
         aircraft_id = created.json()["id"]
 
-        deleted = await admin_client.delete(
-            f"/api/v1/admin/aircraft/{aircraft_id}"
-        )
-
+        deleted = await admin_client.delete(f"/api/v1/admin/aircraft/{aircraft_id}")
         assert deleted.status_code == 204
 
     async def test_delete_aircraft_used_by_flight_returns_409(
-        self,
-        admin_client: AsyncClient,
-        seed_admin_report_data,
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
         aircraft_id = seed_admin_report_data["aircraft"].id
-
-        resp = await admin_client.delete(
-            f"/api/v1/admin/aircraft/{aircraft_id}"
-        )
-
+        resp = await admin_client.delete(f"/api/v1/admin/aircraft/{aircraft_id}")
         assert resp.status_code == 409
 
 
@@ -521,105 +494,82 @@ class TestAdminAircraftCRUD:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestAdminSeatClassCRUD:
-
-    async def test_admin_can_list_seat_classes(
-        self,
-        admin_client: AsyncClient,
-    ):
-        resp = await admin_client.get("/api/v1/admin/seat-classes")
-
+    async def test_admin_can_list_aircraft(self, admin_client: AsyncClient):
+        resp = await admin_client.get("/api/v1/admin/aircraft")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_admin_can_create_seat_class(
-        self,
-        admin_client: AsyncClient,
+    async def test_admin_can_create_aircraft(
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
         payload = {
-            "name": "Premium Economy Test"
+            "model": "Airbus A321",
+            "registration": "RP-SC-TST01",
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 10},
+            ],
         }
-
-        resp = await admin_client.post(
-            "/api/v1/admin/seat-classes",
-            json=payload,
-        )
-
+        resp = await admin_client.post("/api/v1/admin/aircraft", json=payload)
         assert resp.status_code == 201
-
         data = resp.json()
+        assert data["registration"] == "RP-SC-TST01"
 
-        assert data["name"] == "Premium Economy Test"
-
-    async def test_duplicate_seat_class_returns_409(
-        self,
-        admin_client: AsyncClient,
+    async def test_duplicate_aircraft_registration_returns_409(
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
         payload = {
-            "name": "Duplicate Class"
+            "model": "Boeing 777",
+            "registration": "RP-SC-DUP01",
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 10},
+            ],
         }
-
-        first = await admin_client.post(
-            "/api/v1/admin/seat-classes",
-            json=payload,
-        )
-
+        first = await admin_client.post("/api/v1/admin/aircraft", json=payload)
         assert first.status_code == 201
-
-        second = await admin_client.post(
-            "/api/v1/admin/seat-classes",
-            json=payload,
-        )
-
+        second = await admin_client.post("/api/v1/admin/aircraft", json=payload)
         assert second.status_code == 409
 
-    async def test_admin_can_update_seat_class(
-        self,
-        admin_client: AsyncClient,
+    async def test_admin_can_update_aircraft(
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created = await admin_client.post(
-            "/api/v1/admin/seat-classes",
-            json={"name": "Old Class"},
-        )
-
-        seat_class_id = created.json()["id"]
+        create_payload = {
+            "model": "ATR 72",
+            "registration": "RP-SC-UPD01",
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 10},
+            ],
+        }
+        created = await admin_client.post("/api/v1/admin/aircraft", json=create_payload)
+        assert created.status_code == 201
+        aircraft_id = created.json()["id"]
 
         updated = await admin_client.put(
-            f"/api/v1/admin/seat-classes/{seat_class_id}",
-            json={"name": "Updated Class"},
+            f"/api/v1/admin/aircraft/{aircraft_id}",
+            json={"model": "ATR 72-600", "registration": "RP-UPD01"},
         )
-
         assert updated.status_code == 200
+        assert updated.json()["model"] == "ATR 72-600"
 
-        data = updated.json()
-
-        assert data["name"] == "Updated Class"
-
-    async def test_admin_can_delete_unused_seat_class(
-        self,
-        admin_client: AsyncClient,
+    async def test_admin_can_delete_unused_aircraft(
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created = await admin_client.post(
-            "/api/v1/admin/seat-classes",
-            json={"name": "Delete Class"},
-        )
+        payload = {
+            "model": "Delete Aircraft",
+            "registration": "RP-SC-DEL01",
+            "seat_configurations": [
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 5},
+            ],
+        }
+        created = await admin_client.post("/api/v1/admin/aircraft", json=payload)
+        assert created.status_code == 201
+        aircraft_id = created.json()["id"]
 
-        seat_class_id = created.json()["id"]
-
-        deleted = await admin_client.delete(
-            f"/api/v1/admin/seat-classes/{seat_class_id}"
-        )
-
+        deleted = await admin_client.delete(f"/api/v1/admin/aircraft/{aircraft_id}")
         assert deleted.status_code == 204
 
-    async def test_delete_seat_class_in_use_returns_409(
-        self,
-        admin_client: AsyncClient,
-        seed_admin_report_data,
+    async def test_delete_aircraft_used_by_flight_returns_409(
+        self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        seat_class_id = seed_admin_report_data["seat_class"].id
-
-        resp = await admin_client.delete(
-            f"/api/v1/admin/seat-classes/{seat_class_id}"
-        )
-
+        aircraft_id = seed_admin_report_data["aircraft"].id
+        resp = await admin_client.delete(f"/api/v1/admin/aircraft/{aircraft_id}")
         assert resp.status_code == 409
