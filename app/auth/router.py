@@ -102,5 +102,5 @@ async def register_admin(
 @router.post("/google", response_model=GoogleAuthResponse)
 @limiter.limit("20/minute")
 async def google_auth(body: GoogleAuthRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    result = await google_login_or_register(body.token, db)
+    result = await google_login_or_register(body.token, db, mode=body.mode)
     return GoogleAuthResponse(**result)
