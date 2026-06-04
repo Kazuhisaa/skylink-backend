@@ -2,7 +2,7 @@ import uuid
 import pytest_asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 from httpx import AsyncClient
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from app.auth.models import User
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -117,6 +117,7 @@ async def seed_google_users(test_session_factory, seed_users):
                         "emailonly.google@test.com",
                         "inactive.google@test.com",
                         "newgoogle@test.com",
+                        "newregister@test.com", 
                     ])
                 )
             )
@@ -137,10 +138,50 @@ class TestGoogleAuth:
             email="newgoogle@test.com",
         ):
             resp = await unauthenticated_client.post(
-                "/api/v1/auth/google", json={"token": "fake-token"}
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "login"} 
             )
         assert resp.status_code == 404
         assert resp.json()["detail"] == "no_account"
+
+    async def test_new_user_register_mode_creates_account(
+        self, unauthenticated_client: AsyncClient, seed_google_users, test_session_factory
+    ):
+        """New Google user on register page gets account created and JWT returned."""
+        with mock_google_userinfo(
+            google_id="brand-new-register-id",
+            email="newregister@test.com",
+        ):
+            resp = await unauthenticated_client.post(
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "register"}
+            )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+
+        async with test_session_factory() as session:
+            result = await session.execute(
+                select(User).where(User.email == "newregister@test.com")
+            )
+            user = result.scalar_one_or_none()
+            assert user is not None
+            assert user.google_id == "brand-new-register-id"
+            assert user.is_verified is True
+            assert user.role_id == 2
+
+    async def test_existing_user_register_mode_still_logs_in(
+        self, unauthenticated_client: AsyncClient, seed_google_users
+    ):
+        """Existing user clicking Google on register page just logs them in."""
+        with mock_google_userinfo(
+            google_id="existing-google-id-999",
+            email="existing.google@test.com",
+        ):
+            resp = await unauthenticated_client.post(
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "register"}
+            )
+        assert resp.status_code == 200
+        assert "access_token" in resp.json()
 
     async def test_existing_google_user_can_login(
         self, unauthenticated_client: AsyncClient, seed_google_users
@@ -151,7 +192,7 @@ class TestGoogleAuth:
             email="existing.google@test.com",
         ):
             resp = await unauthenticated_client.post(
-                "/api/v1/auth/google", json={"token": "fake-token"}
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "login"}
             )
         assert resp.status_code == 200
         data = resp.json()
@@ -167,14 +208,11 @@ class TestGoogleAuth:
             email="emailonly.google@test.com",
         ):
             resp = await unauthenticated_client.post(
-                "/api/v1/auth/google", json={"token": "fake-token"}
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "login"}
             )
         assert resp.status_code == 200
         assert "access_token" in resp.json()
 
-        # Verify google_id was linked in DB
-        from sqlalchemy import select
-        from app.auth.models import User
         async with test_session_factory() as session:
             result = await session.execute(
                 select(User).where(User.email == "emailonly.google@test.com")
@@ -192,7 +230,7 @@ class TestGoogleAuth:
             email="inactive.google@test.com",
         ):
             resp = await unauthenticated_client.post(
-                "/api/v1/auth/google", json={"token": "fake-token"}
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "login"}
             )
         assert resp.status_code == 403
         assert resp.json()["detail"] == "Account is deactivated."
