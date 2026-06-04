@@ -50,6 +50,7 @@ class ResetPasswordRequest(BaseModel):
 
 class GoogleAuthRequest(BaseModel):
     token: str
+    mode: str = "login"  # "login" or "register"
 
 class GoogleAuthResponse(BaseModel):
     access_token: str
