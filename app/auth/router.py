@@ -21,6 +21,9 @@ from app.auth.models import User
 from app.services.email_service import send_password_reset_email
 from app.core.limiter import limiter
 
+from app.auth.google_service import google_login_or_register
+from app.auth.schemas import GoogleAuthRequest, GoogleAuthResponse
+
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.get("/me", response_model=UserRead)
@@ -95,3 +98,9 @@ async def register_admin(
 ):
     user = await create_admin(body, db)
     return user
+
+@router.post("/google", response_model=GoogleAuthResponse)
+@limiter.limit("20/minute")
+async def google_auth(body: GoogleAuthRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    result = await google_login_or_register(body.token, db)
+    return GoogleAuthResponse(**result)

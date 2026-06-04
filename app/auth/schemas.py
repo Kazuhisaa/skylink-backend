@@ -45,3 +45,12 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     new_password: PasswordStr
+
+# --  Google auth ----
+
+class GoogleAuthRequest(BaseModel):
+    token: str
+
+class GoogleAuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
