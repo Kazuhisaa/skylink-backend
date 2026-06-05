@@ -46,5 +46,7 @@ async def verify_user(email: str, password: str, ip: str | None, db: AsyncSessio
         raise HTTPException(status_code=403, detail="Please verify your email address.")
     
     await record_attempt(email, ip, db)
-    logger.info(f"[AUTH] Login success — user_id={user.id} email={email} ip={ip}")
+
+    role = "admin" if user.role_id == 1 else "passenger"
+    logger.info(f"[AUTH], [role = {role}] Login success — user_id={user.id} email={email} ip={ip} role={role.lower()}")
     return {"id": str(user.id), "email": user.email, "role_id": user.role_id}
