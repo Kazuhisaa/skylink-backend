@@ -17,6 +17,26 @@ from app.core.limiter import limiter
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
+# ─── Admin Endpoints ───────────────────────────────────────────────────────────
+
+@router.get("/admin/all", response_model=PaginatedResponse[BookingListRead], dependencies=[Depends(require_admin)])
+@limiter.limit("60/minute")
+async def get_all_bookings(
+    request: Request,
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    items, total = await booking_service.get_all_bookings(db, page, size)
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size) if total > 0 else 0
+    )
+
+
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
 
 @router.get("", response_model=PaginatedResponse[BookingListRead])
@@ -82,23 +102,3 @@ async def cancel_booking(
     current_user: User = Depends(get_current_user),
 ):
     await booking_service.cancel_booking(booking_id, body, current_user.id, db)  # type: ignore
-
-
-# ─── Admin Endpoints ───────────────────────────────────────────────────────────
-
-@router.get("/admin/all", response_model=PaginatedResponse[BookingListRead], dependencies=[Depends(require_admin)])
-@limiter.limit("60/minute")
-async def get_all_bookings(
-    request: Request,
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-):
-    items, total = await booking_service.get_all_bookings(db, page, size)
-    return PaginatedResponse(
-        items=items,
-        total=total,
-        page=page,
-        size=size,
-        pages=math.ceil(total / size) if total > 0 else 0
-    )
