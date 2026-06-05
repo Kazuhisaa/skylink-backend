@@ -5,13 +5,14 @@ from typing import Optional
 
 from app.database import get_db
 from app.auth.dependencies import require_admin
-from app.schemas.admin import BookingReportRead
+from app.schemas.admin import BookingReportRead, AirportCreate, AircraftCreate, SeatClassCreate, AircraftSeatCreate, AircraftSeatRead, AirportUpdate, AircraftUpdate, SeatClassUpdate, RouteReportRead, CancellationReportRead, UserGrowthReportRead 
+
+from app.schemas.flights import AirportRead, AircraftRead, SeatClassRead
+
 from app.services import admin_service
 from app.core.limiter import limiter
 
-from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AircraftSeatCreate, AircraftSeatRead
-from app.schemas.flights import AirportRead, AircraftRead, SeatClassRead
-from app.schemas.admin import AirportUpdate, AircraftUpdate, SeatClassUpdate, RouteReportRead, CancellationReportRead
+
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -53,6 +54,19 @@ async def get_cancellation_report(
 ):
     return await admin_service.get_cancellation_report(db, date_from, date_to)
 
+
+
+# ─── Cancellation Report ──────────────────────────────────────────────────────────────────
+
+@router.get("/reports/user-growth", response_model=UserGrowthReportRead, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_user_growth_report(
+    request: Request,
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    return await admin_service.get_user_growth_report(db, date_from, date_to)
 
 
 # ─── Airports ──────────────────────────────────────────────────────────────────

@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 
+# --- Bookings Report ---
 class BookingReportFilter(BaseModel):
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
@@ -40,7 +41,6 @@ class AirportUpdate(BaseModel):
     timezone: Optional[str] = None
 
 
-
 # --- Aircraft ---
 class AircraftSeatConfig(BaseModel):
     seat_class_id: int
@@ -56,7 +56,6 @@ class AircraftUpdate(BaseModel):
     model: Optional[str] = None
     total_seats: Optional[int] = None
     registration: Optional[str] = None
-
 
 
 # --- Seat Class ---
@@ -80,6 +79,7 @@ class AircraftSeatRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
+
 # --- Route Booking Point ---
 class RouteBookingPoint(BaseModel):
     route: str       
@@ -91,6 +91,7 @@ class RouteReportRead(BaseModel):
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
 
+
 # --- Cancellation Report ---
 class MonthlyCancellationPoint(BaseModel):
     month: str
@@ -101,5 +102,17 @@ class MonthlyCancellationPoint(BaseModel):
 
 class CancellationReportRead(BaseModel):
     monthly_cancellations: list[MonthlyCancellationPoint] = []
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+
+
+# --- User Growth Report ---
+class MonthlyUserGrowthPoint(BaseModel):
+    month: str
+    year: int
+    new_users: int
+
+class UserGrowthReportRead(BaseModel):
+    monthly_growth: list[MonthlyUserGrowthPoint] = []
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None

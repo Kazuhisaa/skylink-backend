@@ -3,14 +3,14 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.models.bookings import Booking
-from app.schemas.admin import BookingReportRead, MonthlyRevenuePoint
-from app.models.flights import Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
-from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate
 from fastapi import HTTPException
-from app.schemas.admin import RouteReportRead, RouteBookingPoint
-from app.models.flights import Flight
-from app.schemas.admin import CancellationReportRead, MonthlyCancellationPoint
+from app.models.bookings import Booking
+from app.schemas.admin import BookingReportRead, MonthlyRevenuePoint, RouteReportRead, RouteBookingPoint, AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate, CancellationReportRead, MonthlyCancellationPoint, UserGrowthReportRead, MonthlyUserGrowthPoint
+
+from app.models.flights import Flight, Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
+
+
+from app.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -431,6 +431,46 @@ async def get_cancellation_report(
     logger.info(f"[ADMIN] Cancellation report generated — months={len(monthly_cancellations)}")
     return CancellationReportRead(
         monthly_cancellations=monthly_cancellations,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+
+# ─── User Growth Report ─────────────────────────────────────────────────────────────
+
+async def get_user_growth_report(
+    db: AsyncSession,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> "UserGrowthReportRead":
+
+    query = select(User)
+    if date_from:
+        query = query.where(User.created_at >= date_from)
+    if date_to:
+        query = query.where(User.created_at <= date_to)
+
+    result = await db.execute(query)
+    users = result.scalars().all()
+
+    from collections import defaultdict
+    monthly: dict = defaultdict(int)
+    for u in users:
+        key = u.created_at.strftime("%Y-%m")
+        monthly[key] += 1
+
+    monthly_growth = [
+        MonthlyUserGrowthPoint(
+            month=datetime.strptime(k, "%Y-%m").strftime("%b"),
+            year=int(k.split("-")[0]),
+            new_users=v,
+        )
+        for k, v in sorted(monthly.items())
+    ]
+
+    logger.info(f"[ADMIN] User growth report generated — months={len(monthly_growth)}")
+    return UserGrowthReportRead(
+        monthly_growth=monthly_growth,
         date_from=date_from,
         date_to=date_to,
     )
