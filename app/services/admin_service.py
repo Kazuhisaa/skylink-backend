@@ -8,6 +8,9 @@ from app.schemas.admin import BookingReportRead, MonthlyRevenuePoint
 from app.models.flights import Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
 from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate
 from fastapi import HTTPException
+from app.schemas.admin import RouteReportRead, RouteBookingPoint
+from app.models.flights import Flight
+from app.schemas.admin import CancellationReportRead, MonthlyCancellationPoint
 
 logger = logging.getLogger(__name__)
 
@@ -355,8 +358,6 @@ async def get_route_report(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> "RouteReportRead":
-    from app.schemas.admin import RouteReportRead, RouteBookingPoint
-    from app.models.flights import Flight, Airport
 
     query = (
         select(Booking)
@@ -388,3 +389,48 @@ async def get_route_report(
     ]
 
     return RouteReportRead(routes=routes, date_from=date_from, date_to=date_to)
+
+
+# ─── Cancellation Report ─────────────────────────────────────────────────────────────
+
+async def get_cancellation_report(
+    db: AsyncSession,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> "CancellationReportRead":
+
+
+    query = select(Booking)
+    if date_from:
+        query = query.where(Booking.booked_at >= date_from)
+    if date_to:
+        query = query.where(Booking.booked_at <= date_to)
+
+    result = await db.execute(query)
+    bookings = result.scalars().all()
+
+    from collections import defaultdict
+    monthly: dict = defaultdict(lambda: {"total": 0, "cancelled": 0})
+    for b in bookings:
+        key = b.booked_at.strftime("%Y-%m")
+        monthly[key]["total"] += 1
+        if b.status == "cancelled":
+            monthly[key]["cancelled"] += 1
+
+    monthly_cancellations = [
+        MonthlyCancellationPoint(
+            month=datetime.strptime(k, "%Y-%m").strftime("%b"),
+            year=int(k.split("-")[0]),
+            total_bookings=v["total"],
+            cancelled_bookings=v["cancelled"],
+            cancellation_rate=round((v["cancelled"] / v["total"]) * 100, 1) if v["total"] > 0 else 0.0,
+        )
+        for k, v in sorted(monthly.items())
+    ]
+
+    logger.info(f"[ADMIN] Cancellation report generated — months={len(monthly_cancellations)}")
+    return CancellationReportRead(
+        monthly_cancellations=monthly_cancellations,
+        date_from=date_from,
+        date_to=date_to,
+    )
