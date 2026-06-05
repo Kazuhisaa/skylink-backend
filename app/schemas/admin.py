@@ -116,3 +116,17 @@ class UserGrowthReportRead(BaseModel):
     monthly_growth: list[MonthlyUserGrowthPoint] = []
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
+
+
+# --- Activity Log ---
+class ActivityLogRead(BaseModel):
+    id: str
+    email: str
+    ip_address: Optional[str] = None
+    attempted_at: datetime
+
+    model_config = {"from_attributes": True}
+
+class ActivityLogListRead(BaseModel):
+    logs: list[ActivityLogRead] = []
+    total: int
