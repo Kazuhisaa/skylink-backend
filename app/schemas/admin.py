@@ -8,12 +8,19 @@ class BookingReportFilter(BaseModel):
     date_to: Optional[datetime] = None
 
 
+class MonthlyRevenuePoint(BaseModel):
+    month: str        # e.g. "Jan", "Feb"
+    year: int
+    revenue: int
+    bookings: int
+
 class BookingReportRead(BaseModel):
     total_bookings: int
     confirmed_bookings: int
     cancelled_bookings: int
     total_revenue: int
     confirmed_revenue: int
+    monthly_revenue: list[MonthlyRevenuePoint] = []
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
 
