@@ -350,3 +350,41 @@ async def delete_aircraft_seat(seat_id: int, db: AsyncSession) -> None:
     logger.info(f"[ADMIN] Deleted aircraft seat {seat_id}")
 
 
+async def get_route_report(
+    db: AsyncSession,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> "RouteReportRead":
+    from app.schemas.admin import RouteReportRead, RouteBookingPoint
+    from app.models.flights import Flight, Airport
+
+    query = (
+        select(Booking)
+        .options(
+            selectinload(Booking.flight).selectinload(Flight.origin_airport),
+            selectinload(Booking.flight).selectinload(Flight.destination_airport),
+        )
+    )
+    if date_from:
+        query = query.where(Booking.booked_at >= date_from)
+    if date_to:
+        query = query.where(Booking.booked_at <= date_to)
+
+    result = await db.execute(query)
+    bookings = result.scalars().all()
+
+    from collections import defaultdict
+    route_map: dict = defaultdict(lambda: {"bookings": 0, "revenue": 0})
+    for b in bookings:
+        origin = b.flight.origin_airport.iata_code
+        dest = b.flight.destination_airport.iata_code
+        key = f"{origin} → {dest}"
+        route_map[key]["bookings"] += 1
+        route_map[key]["revenue"] += b.total_price
+
+    routes = [
+        RouteBookingPoint(route=k, bookings=v["bookings"], revenue=v["revenue"])
+        for k, v in sorted(route_map.items(), key=lambda x: x[1]["bookings"], reverse=True)
+    ]
+
+    return RouteReportRead(routes=routes, date_from=date_from, date_to=date_to)

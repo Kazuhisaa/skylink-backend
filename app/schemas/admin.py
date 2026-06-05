@@ -79,3 +79,14 @@ class AircraftSeatRead(BaseModel):
     seat_number: str
 
     model_config = {"from_attributes": True}
+
+# --- Route Booking Point ---
+class RouteBookingPoint(BaseModel):
+    route: str       
+    bookings: int
+    revenue: int
+
+class RouteReportRead(BaseModel):
+    routes: list[RouteBookingPoint] = []
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
