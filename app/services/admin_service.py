@@ -5,12 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from fastapi import HTTPException
 from app.models.bookings import Booking
-from app.schemas.admin import BookingReportRead, MonthlyRevenuePoint, RouteReportRead, RouteBookingPoint, AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate, CancellationReportRead, MonthlyCancellationPoint, UserGrowthReportRead, MonthlyUserGrowthPoint
+
+from app.schemas.admin import BookingReportRead, MonthlyRevenuePoint, RouteReportRead, RouteBookingPoint, AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate, CancellationReportRead, MonthlyCancellationPoint, UserGrowthReportRead, MonthlyUserGrowthPoint, ActivityLogListRead, ActivityLogRead
 
 from app.models.flights import Flight, Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
-
-
-from app.auth.models import User
+from app.auth.models import User, LoginAttempt
 
 logger = logging.getLogger(__name__)
 
@@ -473,4 +472,47 @@ async def get_user_growth_report(
         monthly_growth=monthly_growth,
         date_from=date_from,
         date_to=date_to,
+    )
+
+
+# ─── Activity Log ─────────────────────────────────────────────────────────────
+
+async def get_activity_logs(
+    db: AsyncSession,
+    page: int = 1,
+    size: int = 8,
+    search: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> "ActivityLogListRead":
+
+    query = select(LoginAttempt).order_by(LoginAttempt.attempted_at.desc())
+
+    if search:
+        query = query.where(LoginAttempt.email.ilike(f"%{search}%"))
+    if date_from:
+        query = query.where(LoginAttempt.attempted_at >= date_from)
+    if date_to:
+        query = query.where(LoginAttempt.attempted_at <= date_to)
+
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    query = query.offset((page - 1) * size).limit(size)
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    logger.info(f"[ADMIN] Activity logs fetched — page={page} total={total}")
+    return ActivityLogListRead(
+        logs=[
+            ActivityLogRead(
+                id=str(log.id),
+                email=log.email,
+                ip_address=log.ip_address,
+                attempted_at=log.attempted_at,
+            )
+            for log in logs
+        ],
+        total=total,
     )

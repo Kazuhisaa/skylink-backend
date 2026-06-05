@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.database import get_db
 from app.auth.dependencies import require_admin
-from app.schemas.admin import BookingReportRead, AirportCreate, AircraftCreate, SeatClassCreate, AircraftSeatCreate, AircraftSeatRead, AirportUpdate, AircraftUpdate, SeatClassUpdate, RouteReportRead, CancellationReportRead, UserGrowthReportRead 
+from app.schemas.admin import BookingReportRead, AirportCreate, AircraftCreate, SeatClassCreate, AircraftSeatCreate, AircraftSeatRead, AirportUpdate, AircraftUpdate, SeatClassUpdate, RouteReportRead, CancellationReportRead, UserGrowthReportRead, ActivityLogListRead  
 
 from app.schemas.flights import AirportRead, AircraftRead, SeatClassRead
 
@@ -56,7 +56,7 @@ async def get_cancellation_report(
 
 
 
-# ─── Cancellation Report ──────────────────────────────────────────────────────────────────
+# ─── User Growth ──────────────────────────────────────────────────────────────────
 
 @router.get("/reports/user-growth", response_model=UserGrowthReportRead, dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
@@ -68,6 +68,22 @@ async def get_user_growth_report(
 ):
     return await admin_service.get_user_growth_report(db, date_from, date_to)
 
+
+
+# ─── Activity Log ──────────────────────────────────────────────────────────────────
+
+@router.get("/activity-logs", response_model=ActivityLogListRead, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_activity_logs(
+    request: Request,
+    page: int = Query(1, ge=1),
+    size: int = Query(8, ge=1, le=100),
+    search: Optional[str] = Query(None),
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    return await admin_service.get_activity_logs(db, page, size, search, date_from, date_to)
 
 # ─── Airports ──────────────────────────────────────────────────────────────────
 
