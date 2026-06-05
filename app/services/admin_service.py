@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from app.models.bookings import Booking
-from app.schemas.admin import BookingReportRead
+from app.schemas.admin import BookingReportRead, MonthlyRevenuePoint
 from app.models.flights import Airport, Aircraft, SeatClass, FlightSeatPricing, AircraftSeat
 from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AirportUpdate, AircraftUpdate, SeatClassUpdate, AircraftSeatCreate
 from fastapi import HTTPException
@@ -251,14 +251,32 @@ async def get_booking_report(
     total_revenue = sum(b.total_price for b in bookings)  # type: ignore
     confirmed_revenue = sum(b.total_price for b in confirmed)  # type: ignore
 
-    logger.info(f"[ADMIN] Report generated — total={total_bookings} revenue={total_revenue}")
+    # Build monthly breakdown
+    from collections import defaultdict
+    monthly: dict = defaultdict(lambda: {"revenue": 0, "bookings": 0})
+    for b in bookings:
+        key = b.booked_at.strftime("%Y-%m")
+        monthly[key]["revenue"] += b.total_price
+        monthly[key]["bookings"] += 1
 
+    monthly_revenue = [
+        MonthlyRevenuePoint(
+            month=datetime.strptime(k, "%Y-%m").strftime("%b"),
+            year=int(k.split("-")[0]),
+            revenue=v["revenue"],
+            bookings=v["bookings"],
+        )
+        for k, v in sorted(monthly.items())
+    ]
+
+    logger.info(f"[ADMIN] Report generated — total={total_bookings} revenue={total_revenue}")
     return BookingReportRead(
         total_bookings=total_bookings,
         confirmed_bookings=len(confirmed),
         cancelled_bookings=len(cancelled),
-        total_revenue=total_revenue,            # type: ignore
-        confirmed_revenue=confirmed_revenue,    # type: ignore
+        total_revenue=total_revenue,
+        confirmed_revenue=confirmed_revenue,
+        monthly_revenue=monthly_revenue,
         date_from=date_from,
         date_to=date_to,
     )
