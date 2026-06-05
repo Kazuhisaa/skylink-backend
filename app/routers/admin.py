@@ -11,11 +11,11 @@ from app.core.limiter import limiter
 
 from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, AircraftSeatCreate, AircraftSeatRead
 from app.schemas.flights import AirportRead, AircraftRead, SeatClassRead
-from app.schemas.admin import AirportUpdate, AircraftUpdate, SeatClassUpdate
-
-from app.schemas.admin import RouteReportRead
+from app.schemas.admin import AirportUpdate, AircraftUpdate, SeatClassUpdate, RouteReportRead, CancellationReportRead
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
 
 # ─── Reports ─────────────────────────────────────────────────────────────
 
@@ -38,6 +38,21 @@ async def get_route_report(
     db: AsyncSession = Depends(get_db),
 ):
     return await admin_service.get_route_report(db, date_from, date_to)
+
+
+
+# ─── Cancellation Report ──────────────────────────────────────────────────────────────────
+
+@router.get("/reports/cancellations", response_model=CancellationReportRead, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_cancellation_report(
+    request: Request,
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    return await admin_service.get_cancellation_report(db, date_from, date_to)
+
 
 
 # ─── Airports ──────────────────────────────────────────────────────────────────
@@ -109,6 +124,7 @@ async def edit_seat_class(request: Request, seat_class_id: int, body: SeatClassU
 @limiter.limit("30/minute")
 async def remove_seat_class(request: Request, seat_class_id: int, db: AsyncSession = Depends(get_db)):
     await admin_service.delete_seat_class(seat_class_id, db)
+
 
 
 # ─── Aircraft Seats ─────────────────────────────────────────────────────────────

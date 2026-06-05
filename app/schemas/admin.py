@@ -90,3 +90,16 @@ class RouteReportRead(BaseModel):
     routes: list[RouteBookingPoint] = []
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
+
+# --- Cancellation Report ---
+class MonthlyCancellationPoint(BaseModel):
+    month: str
+    year: int
+    total_bookings: int
+    cancelled_bookings: int
+    cancellation_rate: float 
+
+class CancellationReportRead(BaseModel):
+    monthly_cancellations: list[MonthlyCancellationPoint] = []
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
