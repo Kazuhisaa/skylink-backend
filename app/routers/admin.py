@@ -13,8 +13,11 @@ from app.schemas.admin import AirportCreate, AircraftCreate, SeatClassCreate, Ai
 from app.schemas.flights import AirportRead, AircraftRead, SeatClassRead
 from app.schemas.admin import AirportUpdate, AircraftUpdate, SeatClassUpdate
 
+from app.schemas.admin import RouteReportRead
+
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
+# ─── Reports ─────────────────────────────────────────────────────────────
 
 @router.get("/reports", response_model=BookingReportRead, dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")
@@ -26,6 +29,15 @@ async def get_booking_report(
 ):
     return await admin_service.get_booking_report(db, date_from, date_to)
 
+@router.get("/reports/routes", response_model=RouteReportRead, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_route_report(
+    request: Request,
+    date_from: Optional[datetime] = Query(None),
+    date_to: Optional[datetime] = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    return await admin_service.get_route_report(db, date_from, date_to)
 
 
 # ─── Airports ──────────────────────────────────────────────────────────────────
