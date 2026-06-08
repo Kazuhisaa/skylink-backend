@@ -86,6 +86,10 @@ async def get_activity_logs(
     return await admin_service.get_activity_logs(db, page, size, search, date_from, date_to)
 
 # ─── Airports ──────────────────────────────────────────────────────────────────
+@router.get("/airports/public/{iata_code}", response_model=AirportRead)  # add this — no auth required
+@limiter.limit("60/minute")
+async def get_airport_public(request: Request, iata_code: str, db: AsyncSession = Depends(get_db)):
+    return await admin_service.get_airport_by_iata(iata_code, db)
 
 @router.get("/airports", response_model=list[AirportRead], dependencies=[Depends(require_admin)])
 @limiter.limit("30/minute")

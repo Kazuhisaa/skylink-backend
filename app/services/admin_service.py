@@ -26,6 +26,10 @@ async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
         city=body.city,
         country=body.country,
         timezone=body.timezone,
+        about=body.about,             
+        highlights=body.highlights,   
+        best_time=body.best_time,      
+        image_url=body.image_url,      
     )
     db.add(airport)
     await db.commit()
@@ -36,6 +40,15 @@ async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
 async def get_airports(db: AsyncSession) -> list[Airport]:
     result = await db.execute(select(Airport).order_by(Airport.iata_code))
     return list(result.scalars().all())
+
+async def get_airport_by_iata(iata_code: str, db: AsyncSession) -> Airport:
+    result = await db.execute(
+        select(Airport).where(Airport.iata_code == iata_code.upper())
+    )
+    airport = result.scalar_one_or_none()
+    if not airport:
+        raise HTTPException(status_code=404, detail="Airport not found.")
+    return airport
 
 async def update_airport(airport_id: int, body: AirportUpdate, db: AsyncSession) -> Airport:
     result = await db.execute(select(Airport).where(Airport.id == airport_id))

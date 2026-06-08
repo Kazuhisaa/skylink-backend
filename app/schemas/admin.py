@@ -33,12 +33,20 @@ class AirportCreate(BaseModel):
     city: str
     country: str
     timezone: str
+    about: Optional[str] = None     
+    highlights: Optional[list[str]] = None  
+    best_time: Optional[str] = None   
+    image_url: Optional[str] = None      
 
 class AirportUpdate(BaseModel):
     name: Optional[str] = None
     city: Optional[str] = None
     country: Optional[str] = None
     timezone: Optional[str] = None
+    about: Optional[str] = None       
+    highlights: Optional[list[str]] = None  
+    best_time: Optional[str] = None     
+    image_url: Optional[str] = None   
 
 
 # --- Aircraft ---
