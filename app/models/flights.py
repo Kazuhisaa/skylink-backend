@@ -1,13 +1,12 @@
 import uuid
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, CHAR
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, CHAR, Text
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.database import Base
 
 class Airport(Base):
     __tablename__ = "airports"
-
     id = Column(Integer, primary_key=True, autoincrement=True)
     iata_code = Column(CHAR(3), unique=True, nullable=False)
     name = Column(String(150), nullable=False)
@@ -15,8 +14,12 @@ class Airport(Base):
     country = Column(String(100), nullable=False)
     timezone = Column(String(60), nullable=False)
 
-    origin_flights = relationship("Flight", back_populates="origin_airport", foreign_keys="Flight.origin_airport_id")
-    destination_flights = relationship("Flight", back_populates="destination_airport", foreign_keys="Flight.destination_airport_id")
+    about = Column(Text(), nullable=True)  
+    highlights = Column(ARRAY(Text()), nullable=True) 
+    best_time = Column(String(100), nullable=True) 
+    image_url = Column(String(255), nullable=True)
+    origin_flights = relationship("Flight", back_populates="origin_airport", foreign_keys="Flight.origin_airport_id")  
+    destination_flights = relationship("Flight", back_populates="destination_airport", foreign_keys="Flight.destination_airport_id") 
 
 
 class Aircraft(Base):

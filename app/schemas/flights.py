@@ -3,7 +3,6 @@ from datetime import datetime
 from typing import Optional
 import uuid
 
-
 # --- Airport ---
 class AirportRead(BaseModel):
     id: int
@@ -12,7 +11,10 @@ class AirportRead(BaseModel):
     city: str
     country: str
     timezone: str
-
+    about: Optional[str] = None          
+    highlights: Optional[list[str]] = None  
+    best_time: Optional[str] = None      
+    image_url: Optional[str] = None     
     model_config = {"from_attributes": True}
 
 
