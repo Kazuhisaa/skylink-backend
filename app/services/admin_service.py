@@ -26,6 +26,10 @@ async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
         city=body.city,
         country=body.country,
         timezone=body.timezone,
+        about=body.about,             
+        highlights=body.highlights,   
+        best_time=body.best_time,      
+        image_url=body.image_url,      
     )
     db.add(airport)
     await db.commit()
@@ -36,6 +40,15 @@ async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
 async def get_airports(db: AsyncSession) -> list[Airport]:
     result = await db.execute(select(Airport).order_by(Airport.iata_code))
     return list(result.scalars().all())
+
+async def get_airport_by_iata(iata_code: str, db: AsyncSession) -> Airport:
+    result = await db.execute(
+        select(Airport).where(Airport.iata_code == iata_code.upper())
+    )
+    airport = result.scalar_one_or_none()
+    if not airport:
+        raise HTTPException(status_code=404, detail="Airport not found.")
+    return airport
 
 async def update_airport(airport_id: int, body: AirportUpdate, db: AsyncSession) -> Airport:
     result = await db.execute(select(Airport).where(Airport.id == airport_id))
@@ -287,14 +300,13 @@ async def get_booking_report(
 # ─── Aircraft Seat ─────────────────────────────────────────────────────────────
 
 async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate], db: AsyncSession) -> list[AircraftSeat]:
-    # Check if aircraft exists
     aircraft_result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))
-    if not aircraft_result.scalar_one_or_none():
+    aircraft = aircraft_result.scalar_one_or_none()  # consume once, store the object
+    if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found.")
 
     new_seats = []
     for seat_data in seats:
-        # Check if seat number already exists for this aircraft
         existing = await db.execute(
             select(AircraftSeat).where(
                 AircraftSeat.aircraft_id == aircraft_id,
@@ -303,10 +315,9 @@ async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate
         )
         if existing.scalar_one_or_none():
             raise HTTPException(
-                status_code=409, 
+                status_code=409,
                 detail=f"Seat {seat_data.seat_number} already exists for this aircraft."
             )
-        
         seat = AircraftSeat(
             aircraft_id=aircraft_id,
             seat_class_id=seat_data.seat_class_id,
@@ -314,13 +325,16 @@ async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate
         )
         db.add(seat)
         new_seats.append(seat)
-    
-    # Update total_seats in Aircraft
-    count_result = await db.execute(select(func.count()).where(AircraftSeat.aircraft_id == aircraft_id))
-    aircraft = aircraft_result.scalar_one()
-    aircraft.total_seats = count_result.scalar() or 0
 
+    await db.flush()  # get IDs before count query
+
+    count_result = await db.execute(select(func.count()).where(AircraftSeat.aircraft_id == aircraft_id))
+    aircraft.total_seats = count_result.scalar() or 0
     await db.commit()
+
+    for seat in new_seats:
+        await db.refresh(seat)
+
     logger.info(f"[ADMIN] Created {len(new_seats)} seats for aircraft {aircraft_id}")
     return new_seats
 

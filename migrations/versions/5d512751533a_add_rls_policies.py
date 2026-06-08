@@ -25,17 +25,21 @@ def upgrade():
     op.execute("ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;")
 
     op.execute("""
-    CREATE POLICY "Users can view own profile"
-    ON public.users
+    DROP POLICY IF EXISTS "Authenticated users can read aircraft" ON public.aircraft;
+
+    CREATE POLICY "Authenticated users can read aircraft"
+    ON public.aircraft
     FOR SELECT
-    USING (auth.uid() = id);
+    USING (auth.role() = 'authenticated');
     """)
 
     op.execute("""
-    CREATE POLICY "Users can view own bookings"
-    ON public.bookings
+    DROP POLICY IF EXISTS "Authenticated users can read aircraft" ON public.aircraft;
+
+    CREATE POLICY "Authenticated users can read aircraft"
+    ON public.aircraft
     FOR SELECT
-    USING (auth.uid() = user_id);
+    USING (auth.role() = 'authenticated');
     """)
 
 def downgrade():

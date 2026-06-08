@@ -7,6 +7,7 @@ from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
 from app.database import Base, SYNC_DATABASE_URL
+import app.models
 
 config = context.config
 config.set_main_option("sqlalchemy.url", SYNC_DATABASE_URL)
