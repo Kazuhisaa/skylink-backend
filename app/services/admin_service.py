@@ -300,14 +300,13 @@ async def get_booking_report(
 # ─── Aircraft Seat ─────────────────────────────────────────────────────────────
 
 async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate], db: AsyncSession) -> list[AircraftSeat]:
-    # Check if aircraft exists
     aircraft_result = await db.execute(select(Aircraft).where(Aircraft.id == aircraft_id))
-    if not aircraft_result.scalar_one_or_none():
+    aircraft = aircraft_result.scalar_one_or_none()  # consume once, store the object
+    if not aircraft:
         raise HTTPException(status_code=404, detail="Aircraft not found.")
 
     new_seats = []
     for seat_data in seats:
-        # Check if seat number already exists for this aircraft
         existing = await db.execute(
             select(AircraftSeat).where(
                 AircraftSeat.aircraft_id == aircraft_id,
@@ -316,10 +315,9 @@ async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate
         )
         if existing.scalar_one_or_none():
             raise HTTPException(
-                status_code=409, 
+                status_code=409,
                 detail=f"Seat {seat_data.seat_number} already exists for this aircraft."
             )
-        
         seat = AircraftSeat(
             aircraft_id=aircraft_id,
             seat_class_id=seat_data.seat_class_id,
@@ -327,13 +325,16 @@ async def create_aircraft_seats(aircraft_id: int, seats: list[AircraftSeatCreate
         )
         db.add(seat)
         new_seats.append(seat)
-    
-    # Update total_seats in Aircraft
-    count_result = await db.execute(select(func.count()).where(AircraftSeat.aircraft_id == aircraft_id))
-    aircraft = aircraft_result.scalar_one()
-    aircraft.total_seats = count_result.scalar() or 0
 
+    await db.flush()  # get IDs before count query
+
+    count_result = await db.execute(select(func.count()).where(AircraftSeat.aircraft_id == aircraft_id))
+    aircraft.total_seats = count_result.scalar() or 0
     await db.commit()
+
+    for seat in new_seats:
+        await db.refresh(seat)
+
     logger.info(f"[ADMIN] Created {len(new_seats)} seats for aircraft {aircraft_id}")
     return new_seats
 
