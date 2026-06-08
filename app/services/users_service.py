@@ -76,23 +76,6 @@ async def update_user_status(
     return user
 
 
-async def change_password(user_id: uuid.UUID, current_password: str, new_password: str, db: AsyncSession) -> None:
-    from app.auth.security import verify_password, hash_password
-    result = await db.execute(select(User).where(User.id == user_id))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found.")
-    if not user.password_hash:
-        raise HTTPException(status_code=400, detail="Cannot change password for social login accounts.")
-    if not verify_password(current_password, user.password_hash):  # type: ignore
-        raise HTTPException(status_code=400, detail="Current password is incorrect.")
-    if len(new_password) < 8:
-        raise HTTPException(status_code=400, detail="New password must be at least 8 characters.")
-    user.password_hash = hash_password(new_password)  # type: ignore
-    await db.commit()
-    logger.info(f"[USER] Password changed for user {user_id}")
-
-
 async def delete_user(user_id: uuid.UUID, db: AsyncSession) -> None:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
