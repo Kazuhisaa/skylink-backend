@@ -29,13 +29,15 @@ def upgrade():
 
     # Optional: allow public read for reference tables
     op.execute("""
-    CREATE POLICY "Public read airports"
-    ON public.airports
+    DROP POLICY IF EXISTS "Public read flights" ON public.flights;
+    CREATE POLICY "Public read flights"
+    ON public.flights
     FOR SELECT
     USING (true);
     """)
 
     op.execute("""
+    DROP POLICY IF EXISTS "Public read flights" ON public.flights;
     CREATE POLICY "Public read flights"
     ON public.flights
     FOR SELECT
