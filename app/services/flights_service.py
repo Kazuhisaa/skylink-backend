@@ -55,8 +55,6 @@ async def _invalidate_flight_cache():
 
 # ─── Passenger Services ────────────────────────────────────────────────────────
 
-# ─── Passenger Services ────────────────────────────────────────────────────────
-
 async def search_flights(
     db: AsyncSession,
     origin: str | None = None,
