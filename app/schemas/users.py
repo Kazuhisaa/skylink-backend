@@ -25,7 +25,3 @@ class UserUpdate(BaseModel):
 
 class UserStatusUpdate(BaseModel):
     is_active: bool
-
-class ChangePasswordRequest(BaseModel):
-    current_password: str
-    new_password: str
