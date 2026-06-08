@@ -7,7 +7,7 @@ import math
 from app.database import get_db
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
-from app.schemas.users import UserRead, UserUpdate, UserStatusUpdate
+from app.schemas.users import UserRead, UserUpdate, UserStatusUpdate, ChangePasswordRequest 
 from app.schemas.pagination import PaginatedResponse
 from app.services import users_service
 from app.core.limiter import limiter
@@ -36,6 +36,18 @@ async def update_me(
     current_user: User = Depends(get_current_user),
 ):
     return await users_service.update_me(current_user.id, body, db)  # type: ignore
+
+
+@router.put("/me/password", status_code=204)
+@limiter.limit("5/minute")
+async def change_password(
+    request: Request,
+    body: ChangePasswordRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await users_service.change_password(current_user.id, body.current_password, body.new_password, db)  # type: ignore
+
 
 
 # ─── Admin Endpoints ───────────────────────────────────────────────────────────
