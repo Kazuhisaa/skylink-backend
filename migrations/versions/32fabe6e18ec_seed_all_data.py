@@ -25,6 +25,11 @@ flight_3_id     = str(uuid.uuid4())
 flight_4_id     = str(uuid.uuid4())
 flight_5_id     = str(uuid.uuid4())
 
+flight_6_id  = str(uuid.uuid4()); flight_7_id  = str(uuid.uuid4())
+flight_8_id  = str(uuid.uuid4()); flight_9_id  = str(uuid.uuid4())
+flight_10_id = str(uuid.uuid4()); flight_11_id = str(uuid.uuid4())
+flight_12_id = str(uuid.uuid4())
+
 booking_1_id    = str(uuid.uuid4())
 booking_2_id    = str(uuid.uuid4())
 booking_3_id    = str(uuid.uuid4())
@@ -62,43 +67,51 @@ def upgrade() -> None:
 
     # --- Airports ---
     op.execute("""
-        INSERT INTO airports (iata_code, name, city, country, timezone, about, highlights, best_time, image_url) VALUES
-        ('MNL', 'Ninoy Aquino International Airport', 'Metro Manila', 'Philippines', 'Asia/Manila',
-         'Manila is the bustling capital of the Philippines, serving as the main gateway to the archipelago with world-class connections across Asia and beyond.',
-         ARRAY['Intramuros', 'Rizal Park', 'BGC', 'Manila Bay Sunset'],
-         'November to February',
-         'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=1200'),
-        ('CEB', 'Mactan-Cebu International Airport', 'Cebu', 'Philippines', 'Asia/Manila',
-         'Known as the Queen City of the South, Cebu blends beaches, heritage landmarks, and a lively food scene in one easy island escape.',
-         ARRAY['Magellan''s Cross', 'Osmeña Peak', 'Kawasan Falls', 'Sinulog Festival'],
-         'November to May',
-         'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1200'),
-        ('DVO', 'Francisco Bangoy International Airport', 'Davao', 'Philippines', 'Asia/Manila',
-         'Davao offers mountain views, city comforts, and quick access to nature attractions across Mindanao.',
-         ARRAY['Mount Apo', 'Philippine Eagle Center', 'People''s Park', 'Davao Crocodile Park'],
-         'December to May',
-         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200'),
-        ('ILO', 'Iloilo International Airport', 'Iloilo', 'Philippines', 'Asia/Manila',
-         'Iloilo is the heart of Western Visayas, known for its heritage architecture, festivals, and fresh seafood.',
-         ARRAY['Miagao Church', 'Dinagyang Festival', 'Iloilo River Esplanade', 'La Paz Batchoy'],
-         'November to May',
-         'https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=1200'),
-        ('BCD', 'Bacolod-Silay International Airport', 'Bacolod', 'Philippines', 'Asia/Manila',
-         'Bacolod is the City of Smiles, known for its MassKara Festival, heritage sites, and sweet delicacies.',
-         ARRAY['MassKara Festival', 'The Ruins', 'Bacolod Public Plaza', 'Masskara Street Dance'],
-         'October to May',
-         'https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=1200'),
-        ('PPS', 'Puerto Princesa International Airport', 'Puerto Princesa', 'Philippines', 'Asia/Manila',
-         'Puerto Princesa is the gateway to Palawan''s lagoons, limestone cliffs, and calm island-hopping days.',
-         ARRAY['Underground River', 'Honda Bay', 'Baywalk', 'Island Hopping'],
-         'November to May',
-         'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200'),
-        ('KLO', 'Kalibo International Airport', 'Kalibo', 'Philippines', 'Asia/Manila',
-         'Kalibo opens the door to Boracay''s powdery beaches and sunset trips across the islands of Aklan.',
-         ARRAY['White Beach', 'Puka Shell Beach', 'Sunset Sailings', 'Island Hopping'],
-         'December to May',
-         'https://images.unsplash.com/photo-1518509562904-e7ef99cdcc86?w=1200')
-        ON CONFLICT DO NOTHING;
+    INSERT INTO airports (iata_code, name, city, country, timezone, about, highlights, best_time, image_url) VALUES
+
+    ('MNL', 'Ninoy Aquino International Airport', 'Metro Manila', 'Philippines', 'Asia/Manila',
+    'Manila is the bustling capital of the Philippines, serving as the main gateway to the archipelago with world-class connections across Asia and beyond.',
+    ARRAY['Intramuros', 'Rizal Park', 'BGC', 'Manila Bay Sunset'],
+    'November to February',
+    'https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=1200'),
+
+    ('CEB', 'Mactan-Cebu International Airport', 'Cebu', 'Philippines', 'Asia/Manila',
+    'Known as the Queen City of the South, Cebu blends beaches, heritage landmarks, and a lively food scene in one easy island escape.',
+    ARRAY['Magellan''s Cross', 'Osmeña Peak', 'Kawasan Falls', 'Sinulog Festival'],
+    'November to May',
+    'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200'),
+
+    ('DVO', 'Francisco Bangoy International Airport', 'Davao', 'Philippines', 'Asia/Manila',
+    'Davao offers mountain views, city comforts, and quick access to nature attractions across Mindanao.',
+    ARRAY['Mount Apo', 'Philippine Eagle Center', 'People''s Park', 'Davao Crocodile Park'],
+    'December to May',
+    'https://images.unsplash.com/photo-1500534623283-312aade485b7?w=1200'),
+
+    ('ILO', 'Iloilo International Airport', 'Iloilo', 'Philippines', 'Asia/Manila',
+    'Iloilo is the heart of Western Visayas, known for its heritage architecture, festivals, and fresh seafood.',
+    ARRAY['Miagao Church', 'Dinagyang Festival', 'Iloilo River Esplanade', 'La Paz Batchoy'],
+    'November to May',
+    'https://images.unsplash.com/photo-1528127269322-539801943592?w=1200'),
+
+    ('BCD', 'Bacolod-Silay International Airport', 'Bacolod', 'Philippines', 'Asia/Manila',
+    'Bacolod is the City of Smiles, known for its MassKara Festival, heritage sites, and sweet delicacies.',
+    ARRAY['MassKara Festival', 'The Ruins', 'Bacolod Public Plaza', 'Masskara Street Dance'],
+    'October to May',
+    'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?w=1200'),
+
+    ('PPS', 'Puerto Princesa International Airport', 'Puerto Princesa', 'Philippines', 'Asia/Manila',
+    'Puerto Princesa is the gateway to Palawan''s lagoons, limestone cliffs, and calm island-hopping days.',
+    ARRAY['Underground River', 'Honda Bay', 'Baywalk', 'Island Hopping'],
+    'November to May',
+    'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=1200'),
+
+    ('KLO', 'Kalibo International Airport', 'Kalibo', 'Philippines', 'Asia/Manila',
+    'Kalibo opens the door to Boracay''s powdery beaches and sunset trips across the islands of Aklan.',
+    ARRAY['White Beach', 'Puka Shell Beach', 'Sunset Sailings', 'Island Hopping'],
+    'December to May',
+    'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200')
+
+    ON CONFLICT DO NOTHING;
     """)
 
     # --- Aircraft ---
@@ -151,6 +164,7 @@ def upgrade() -> None:
     # --- Flights ---
     op.execute(f"""
         INSERT INTO flights (id, flight_number, aircraft_id, origin_airport_id, destination_airport_id, departure_time, arrival_time, status, created_by) VALUES
+        -- MNL → CEB / CEB → MNL
         ('{flight_1_id}', 'SK101', 1,
             (SELECT id FROM airports WHERE iata_code='MNL'),
             (SELECT id FROM airports WHERE iata_code='CEB'),
@@ -159,34 +173,93 @@ def upgrade() -> None:
             (SELECT id FROM airports WHERE iata_code='CEB'),
             (SELECT id FROM airports WHERE iata_code='MNL'),
             '2026-07-01 09:00:00+00', '2026-07-01 10:20:00+00', 'scheduled', '{admin_id}'),
+        -- MNL → DVO / DVO → MNL
         ('{flight_3_id}', 'SK201', 1,
             (SELECT id FROM airports WHERE iata_code='MNL'),
             (SELECT id FROM airports WHERE iata_code='DVO'),
             '2026-07-02 08:00:00+00', '2026-07-02 09:45:00+00', 'scheduled', '{admin_id}'),
+        ('{flight_5_id}', 'SK401', 1,
+            (SELECT id FROM airports WHERE iata_code='DVO'),
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            '2026-07-04 14:00:00+00', '2026-07-04 15:45:00+00', 'scheduled', '{admin_id}'),
+        -- MNL → ILO / ILO → MNL
         ('{flight_4_id}', 'SK301', 2,
             (SELECT id FROM airports WHERE iata_code='MNL'),
             (SELECT id FROM airports WHERE iata_code='ILO'),
             '2026-07-03 07:00:00+00', '2026-07-03 08:15:00+00', 'scheduled', '{admin_id}'),
-        ('{flight_5_id}', 'SK401', 1,
-            (SELECT id FROM airports WHERE iata_code='DVO'),
+        ('{flight_6_id}', 'SK302', 2,
+            (SELECT id FROM airports WHERE iata_code='ILO'),
             (SELECT id FROM airports WHERE iata_code='MNL'),
-            '2026-07-04 14:00:00+00', '2026-07-04 15:45:00+00', 'scheduled', '{admin_id}')
+            '2026-07-03 10:00:00+00', '2026-07-03 11:15:00+00', 'scheduled', '{admin_id}'),
+        -- MNL → BCD / BCD → MNL
+        ('{flight_7_id}', 'SK501', 1,
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            (SELECT id FROM airports WHERE iata_code='BCD'),
+            '2026-07-05 07:00:00+00', '2026-07-05 08:20:00+00', 'scheduled', '{admin_id}'),
+        ('{flight_8_id}', 'SK502', 1,
+            (SELECT id FROM airports WHERE iata_code='BCD'),
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            '2026-07-05 10:00:00+00', '2026-07-05 11:20:00+00', 'scheduled', '{admin_id}'),
+        -- MNL → PPS / PPS → MNL
+        ('{flight_9_id}', 'SK601', 2,
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            (SELECT id FROM airports WHERE iata_code='PPS'),
+            '2026-07-06 06:30:00+00', '2026-07-06 08:00:00+00', 'scheduled', '{admin_id}'),
+        ('{flight_10_id}', 'SK602', 2,
+            (SELECT id FROM airports WHERE iata_code='PPS'),
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            '2026-07-06 10:00:00+00', '2026-07-06 11:30:00+00', 'scheduled', '{admin_id}'),
+        -- MNL → KLO / KLO → MNL
+        ('{flight_11_id}', 'SK701', 1,
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            (SELECT id FROM airports WHERE iata_code='KLO'),
+            '2026-07-07 07:00:00+00', '2026-07-07 08:10:00+00', 'scheduled', '{admin_id}'),
+        ('{flight_12_id}', 'SK702', 1,
+            (SELECT id FROM airports WHERE iata_code='KLO'),
+            (SELECT id FROM airports WHERE iata_code='MNL'),
+            '2026-07-07 10:00:00+00', '2026-07-07 11:10:00+00', 'scheduled', '{admin_id}')
         ON CONFLICT DO NOTHING;
     """)
 
     # --- Flight Seat Pricing ---
     op.execute(f"""
         INSERT INTO flight_seat_pricing (flight_id, seat_class_id, total_seats, available_seats, price) VALUES
+        -- SK101 MNL→CEB
         ('{flight_1_id}', 1, 160, 158, 189900),
         ('{flight_1_id}', 2, 20,  18,  599900),
+        -- SK102 CEB→MNL
         ('{flight_2_id}', 1, 144, 142, 189900),
         ('{flight_2_id}', 2, 16,  14,  599900),
+        -- SK201 MNL→DVO
         ('{flight_3_id}', 1, 160, 155, 229900),
         ('{flight_3_id}', 2, 20,  19,  699900),
+        -- SK401 DVO→MNL
+        ('{flight_5_id}', 1, 160, 157, 219900),
+        ('{flight_5_id}', 2, 20,  20,  679900),
+        -- SK301 MNL→ILO
         ('{flight_4_id}', 1, 144, 140, 199900),
         ('{flight_4_id}', 2, 16,  15,  649900),
-        ('{flight_5_id}', 1, 160, 157, 219900),
-        ('{flight_5_id}', 2, 20,  20,  679900)
+        -- SK302 ILO→MNL
+        ('{flight_6_id}', 1, 144, 142, 199900),
+        ('{flight_6_id}', 2, 16,  16,  649900),
+        -- SK501 MNL→BCD
+        ('{flight_7_id}', 1, 160, 160, 219900),
+        ('{flight_7_id}', 2, 20,  20,  679900),
+        -- SK502 BCD→MNL
+        ('{flight_8_id}', 1, 160, 160, 219900),
+        ('{flight_8_id}', 2, 20,  20,  679900),
+        -- SK601 MNL→PPS
+        ('{flight_9_id}', 1, 144, 144, 249900),
+        ('{flight_9_id}', 2, 16,  16,  749900),
+        -- SK602 PPS→MNL
+        ('{flight_10_id}', 1, 144, 144, 249900),
+        ('{flight_10_id}', 2, 16,  16,  749900),
+        -- SK701 MNL→KLO
+        ('{flight_11_id}', 1, 160, 160, 209900),
+        ('{flight_11_id}', 2, 20,  20,  659900),
+        -- SK702 KLO→MNL
+        ('{flight_12_id}', 1, 160, 160, 209900),
+        ('{flight_12_id}', 2, 20,  20,  659900)
         ON CONFLICT DO NOTHING;
     """)
     
