@@ -45,11 +45,18 @@ async def paymongo_webhook(
         raise HTTPException(status_code=400, detail="Missing signature header")
     
     try:
-        parts = dict(item.split("=") for item in paymongo_signature.split(","))
+        parts = {}
+        for item in paymongo_signature.split(","):
+            if "=" in item:
+                k, v = item.split("=", 1)
+                parts[k.strip()] = v.strip()
+        
         timestamp = parts.get("t")
-        signature = parts.get("li") # 'li' is the signature for live/test secret
+        # PayMongo uses 'te' for test mode and 'li' for live mode signatures
+        signature = parts.get("te") or parts.get("li")
         
         if not timestamp or not signature:
+            logger.error(f"Incomplete signature header. Parts found: {list(parts.keys())}")
             raise HTTPException(status_code=400, detail="Invalid signature format")
             
         # 3. Verify Signature
