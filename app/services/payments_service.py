@@ -104,8 +104,8 @@ async def handle_webhook(payload: Dict[str, Any], signature: str, request_timest
 async def _process_successful_payment(gateway_ref: str):
     # This usually requires its own session or a shared one
     # For now, let's assume we have a way to get the DB session
-    from app.database import SessionLocal
-    async with SessionLocal() as db:
+    from app.database import AsyncSessionLocal
+    async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(Payment).where(Payment.gateway_ref == gateway_ref).options(selectinload(Payment.booking))
         )
