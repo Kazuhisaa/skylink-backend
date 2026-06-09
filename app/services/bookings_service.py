@@ -255,8 +255,13 @@ async def get_all_bookings(
 # ─── Booking by PNR ────────────────────────────────────────────────────────────
 
 async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
-    result = await db.execute(
-        select(Booking).options(
+    # Optimized search: filter by truncated UUID in SQL
+    from sqlalchemy import cast, String
+    
+    query = (
+        select(Booking)
+        .where(func.upper(func.replace(cast(Booking.id, String), "-", "")).like(f"{pnr.upper()}%"))
+        .options(
             selectinload(Booking.flight).selectinload(Flight.origin_airport),
             selectinload(Booking.flight).selectinload(Flight.destination_airport),
             selectinload(Booking.flight).selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
@@ -264,14 +269,13 @@ async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
             selectinload(Booking.passengers),
         )
     )
-    bookings = result.scalars().all()
-    match = next(
-        (b for b in bookings if str(b.id).replace("-", "")[:8].upper() == pnr.upper()),
-        None
-    )
-    if not match:
+    
+    result = await db.execute(query)
+    booking = result.scalar_one_or_none()
+    
+    if not booking:
         raise HTTPException(status_code=404, detail="Booking not found.")
-    return match
+    return booking
 
 
 def _build_pnr_response(booking: Booking, pnr: str) -> dict:

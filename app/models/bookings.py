@@ -26,6 +26,11 @@ class Booking(Base):
     reschedule_history = relationship("RescheduleHistory", back_populates="booking", foreign_keys="RescheduleHistory.booking_id")
     cancellation = relationship("Cancellation", back_populates="booking", uselist=False)
 
+    @property
+    def pnr(self) -> str:
+        """Returns the first 8 characters of the UUID as the PNR."""
+        return str(self.id).replace("-", "").upper()[:8]
+
 
 class Passenger(Base):
     __tablename__ = "passengers"
