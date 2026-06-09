@@ -250,3 +250,58 @@ async def get_all_bookings(
     items = result.scalars().all()
 
     return items, total  # type: ignore
+
+
+# ─── Booking by PNR ────────────────────────────────────────────────────────────
+
+async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
+    result = await db.execute(
+        select(Booking).options(
+            selectinload(Booking.flight).selectinload(Flight.origin_airport),
+            selectinload(Booking.flight).selectinload(Flight.destination_airport),
+            selectinload(Booking.flight).selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
+            selectinload(Booking.seat_class),
+            selectinload(Booking.passengers),
+        )
+    )
+    bookings = result.scalars().all()
+    match = next(
+        (b for b in bookings if str(b.id).replace("-", "")[:8].upper() == pnr.upper()),
+        None
+    )
+    if not match:
+        raise HTTPException(status_code=404, detail="Booking not found.")
+    return match
+
+
+def _build_pnr_response(booking: Booking, pnr: str) -> dict:
+    return {
+        "pnr": pnr.upper(),
+        "booking_id": str(booking.id),
+        "booking_status": booking.status,
+        "journey_status": booking.flight.status,
+        "itinerary": [{
+            "id": str(booking.flight.id),
+            "flightNumber": booking.flight.flight_number,
+            "origin": booking.flight.origin_airport.iata_code,
+            "destination": booking.flight.destination_airport.iata_code,
+            "departureTime": booking.flight.departure_time.isoformat(),
+            "arrivalTime": booking.flight.arrival_time.isoformat(),
+            "status": booking.flight.status,
+        }],
+        "passengers": booking.passengers,
+        "updated_at": booking.updated_at,
+    }
+
+
+async def get_booking_by_pnr(pnr: str, db: AsyncSession) -> dict:
+    booking = await _find_booking_by_pnr(pnr, db)
+    return _build_pnr_response(booking, pnr)
+
+
+async def get_booking_by_pnr_public(pnr: str, last_name: str, db: AsyncSession) -> dict:
+    booking = await _find_booking_by_pnr(pnr, db)
+    passenger_last_names = [p.last_name.lower() for p in booking.passengers]
+    if last_name.lower() not in passenger_last_names:
+        raise HTTPException(status_code=403, detail="Last name does not match booking.")
+    return _build_pnr_response(booking, pnr)

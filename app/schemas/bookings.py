@@ -76,3 +76,16 @@ class RescheduleRequest(BaseModel):
 # --- Cancel ---
 class CancelRequest(BaseModel):
     reason: Optional[str] = None
+
+
+# --- PNR ---
+class PNRStatusResult(BaseModel):
+    pnr: str
+    booking_id: str
+    booking_status: str
+    journey_status: str
+    itinerary: list[dict] = []
+    passengers: list[PassengerRead] = []
+    message: Optional[str] = None
+    updated_at: datetime
+    model_config = {"from_attributes": True}
