@@ -18,3 +18,42 @@ async def get_revenue_forecast(
     db: AsyncSession = Depends(get_db),
 ):
     return await ml_service.get_revenue_forecast(db, months_ahead)
+
+
+@router.get("/demand-forecast", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_demand_forecast(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    return await ml_service.get_demand_forecast(db)
+
+
+@router.get("/cancellation-risk/{booking_id}", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_cancellation_risk(
+    request: Request,
+    booking_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    return await ml_service.get_cancellation_risk(db, booking_id)
+
+
+@router.get("/revenue-anomalies", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_revenue_anomalies(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    return await ml_service.get_revenue_anomalies(db)
+
+
+@router.get("/pricing-suggestion/{flight_id}", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_pricing_suggestion(
+    request: Request,
+    flight_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    result = await ml_service.get_pricing_suggestion(db, flight_id)
+    return result
