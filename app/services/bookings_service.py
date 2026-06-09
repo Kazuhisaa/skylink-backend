@@ -2,7 +2,7 @@ import logging
 import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, String
 from sqlalchemy.orm import selectinload
 
 from app.models.bookings import Booking, Passenger
@@ -256,9 +256,6 @@ async def get_all_bookings(
 
 async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
     # Reliable search: convert UUID to text, remove hyphens, uppercase, and match prefix
-    from sqlalchemy import text
-    
-    # We'll use a raw SQL snippet for the WHERE clause to ensure correct Postgres casting
     # id::text converts UUID to string with hyphens
     # replace(..., '-', '') removes hyphens
     # upper(...) makes it uppercase
@@ -274,9 +271,6 @@ async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
             selectinload(Booking.passengers),
         )
     )
-    
-    # Re-verify imports if needed
-    from sqlalchemy import cast, String
     
     result = await db.execute(query)
     booking = result.scalar_one_or_none()
