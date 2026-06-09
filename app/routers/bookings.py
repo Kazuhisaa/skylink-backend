@@ -8,7 +8,7 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.schemas.bookings import (
     BookingCreate, BookingRead, BookingListRead,
-    RescheduleRequest, CancelRequest
+    RescheduleRequest, CancelRequest, PNRStatusResult
 )
 from app.schemas.pagination import PaginatedResponse
 from app.services import bookings_service as booking_service
@@ -35,6 +35,29 @@ async def get_all_bookings(
         size=size,
         pages=math.ceil(total / size) if total > 0 else 0
     )
+
+
+# ─── PNR Endpoints ─────────────────────────────────────────────────────────────
+
+@router.get("/pnr/status", response_model=PNRStatusResult)
+@limiter.limit("30/minute")
+async def get_pnr_status(
+    request: Request,
+    pnr: str = Query(..., min_length=8, max_length=8),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await booking_service.get_booking_by_pnr(pnr, db)
+
+@router.get("/pnr/public-status", response_model=PNRStatusResult)
+@limiter.limit("10/minute")
+async def get_pnr_public_status(
+    request: Request,
+    pnr: str = Query(..., min_length=8, max_length=8),
+    lastName: str = Query(...),
+    db: AsyncSession = Depends(get_db),
+):
+    return await booking_service.get_booking_by_pnr_public(pnr, lastName, db)
 
 
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
