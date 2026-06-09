@@ -262,7 +262,7 @@ async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
     # Then we check if it starts with the 8-char PNR
     query = (
         select(Booking)
-        .where(func.upper(func.replace(cast(Booking.id, String), "-", "")).startswith(pnr.upper()))
+        .where(func.upper(func.replace(cast(Booking.id, String), "-", "")).like(f"{pnr.upper()}%"))
         .options(
             selectinload(Booking.flight).selectinload(Flight.origin_airport),
             selectinload(Booking.flight).selectinload(Flight.destination_airport),
