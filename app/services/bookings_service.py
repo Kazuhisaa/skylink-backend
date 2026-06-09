@@ -255,12 +255,17 @@ async def get_all_bookings(
 # ─── Booking by PNR ────────────────────────────────────────────────────────────
 
 async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
-    # Optimized search: filter by truncated UUID in SQL
-    from sqlalchemy import cast, String
+    # Reliable search: convert UUID to text, remove hyphens, uppercase, and match prefix
+    from sqlalchemy import text
     
+    # We'll use a raw SQL snippet for the WHERE clause to ensure correct Postgres casting
+    # id::text converts UUID to string with hyphens
+    # replace(..., '-', '') removes hyphens
+    # upper(...) makes it uppercase
+    # Then we check if it starts with the 8-char PNR
     query = (
         select(Booking)
-        .where(func.upper(func.replace(cast(Booking.id, String), "-", "")).like(f"{pnr.upper()}%"))
+        .where(func.upper(func.replace(cast(Booking.id, String), "-", "")).startswith(pnr.upper()))
         .options(
             selectinload(Booking.flight).selectinload(Flight.origin_airport),
             selectinload(Booking.flight).selectinload(Flight.destination_airport),
@@ -270,10 +275,14 @@ async def _find_booking_by_pnr(pnr: str, db: AsyncSession) -> Booking:
         )
     )
     
+    # Re-verify imports if needed
+    from sqlalchemy import cast, String
+    
     result = await db.execute(query)
     booking = result.scalar_one_or_none()
     
     if not booking:
+        logger.warning(f"PNR search failed for: {pnr}")
         raise HTTPException(status_code=404, detail="Booking not found.")
     return booking
 

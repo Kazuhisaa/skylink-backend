@@ -30,6 +30,10 @@ API_PREFIX = "/api/v1"
 
 
 from app.routers import routers
+from app.routers.pnr import router as pnr_router
 
 for router in routers:
     app.include_router(router, prefix=API_PREFIX)
+
+# Special case for PNR to match frontend expectation (/api/pnr/status)
+app.include_router(pnr_router, prefix="/api")
