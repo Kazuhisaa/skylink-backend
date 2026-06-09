@@ -76,5 +76,8 @@ class Settings:
     USE_CREDENTIALS: bool = os.getenv("USE_CREDENTIALS", "True").lower() == "true"
     VALIDATE_CERTS: bool = os.getenv("VALIDATE_CERTS", "True").lower() == "true"
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+    PAYMONGO_SECRET_KEY: str = os.getenv("PAYMONGO_SECRET_KEY", "")
+    PAYMONGO_PUBLIC_KEY: str = os.getenv("PAYMONGO_PUBLIC_KEY", "")
+    PAYMONGO_WEBHOOK_SECRET: str = os.getenv("PAYMONGO_WEBHOOK_SECRET", "")
 
 settings = Settings()
