@@ -7,7 +7,7 @@ on:
 jobs:
   generate-description:
     runs-on: ubuntu-latest
-    continue-on-error: true # add 
+    continue-on-error: true
     permissions:
       pull-requests: write
       contents: read
@@ -63,21 +63,29 @@ jobs:
 
           ## 🧪 How to Test"
 
+          PROMPT_JSON=$(cat <<'EOFPROMPT' | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))"
+          $PROMPT
+          EOFPROMPT
+          )
+
           RESPONSE=$(curl -s \
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$GEMINI_API_KEY" \
             -H "Content-Type: application/json" \
             -d "{
               \"contents\": [{
                 \"parts\": [{
-                  \"text\": $(echo "$PROMPT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+                  \"text\": $PROMPT_JSON
                 }]
               }]
             }") || true
 
-          DESCRIPTION=$(echo $RESPONSE | python3 -c "
+          DESCRIPTION=$(echo "$RESPONSE" | python3 -c "
           import sys, json
-          data = json.load(sys.stdin)
-          print(data['candidates'][0]['content']['parts'][0]['text'])
+          try:
+              data = json.load(sys.stdin)
+              print(data['candidates'][0]['content']['parts'][0]['text'])
+          except:
+              print('Failed to generate description')
           ") || true
 
           echo "description<<EOF" >> $GITHUB_OUTPUT
@@ -90,16 +98,3 @@ jobs:
         run: |
           gh pr edit ${{ github.event.pull_request.number }} \
             --body "${{ steps.gemini.outputs.description }}" || true
-#```
-
-#---
-
-## Flow
-#```
-#git push origin feature/SKYLINK-7-login-auth
-#              ↓
-#PR opened sa GitHub
-#              ↓
-#Gemini API mag-a-analyze ng code changes
-#              ↓
-#Auto-fill ang PR template ✅
