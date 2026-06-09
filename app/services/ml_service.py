@@ -30,14 +30,19 @@ async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
     months_numeric = np.array(range(len(rows))).reshape(-1, 1)
     revenues = np.array([float(r.revenue) for r in rows])
 
+    # Clip outliers beyond 2 std devs so spikes don't skew the trend line
+    mean = np.mean(revenues)
+    std = np.std(revenues)
+    revenues_clipped = np.clip(revenues, mean - 2 * std, mean + 2 * std)
+
     model = LinearRegression()
-    model.fit(months_numeric, revenues)
+    model.fit(months_numeric, revenues_clipped)
 
     historical = [
         {
             "month": r.month.strftime("%b"),
             "year": r.month.year,
-            "revenue": float(r.revenue),
+            "revenue": float(r.revenue),  # always return real revenue in historical
         }
         for r in rows
     ]
@@ -56,11 +61,20 @@ async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
             "revenue": max(0.0, predicted),
         })
 
-    r2 = float(model.score(months_numeric, revenues))
-    logger.info(f"[ML] Revenue forecast generated — r2={r2:.3f} months_ahead={months_ahead}")
+    r2 = float(model.score(months_numeric, revenues_clipped))
+
+    if len(rows) < 6:
+        confidence = "low"
+    elif r2 < 0.5 or len(rows) < 12:
+        confidence = "medium"
+    else:
+        confidence = "high"
+
+    logger.info(f"[ML] Revenue forecast generated — r2={r2:.3f} confidence={confidence} months_ahead={months_ahead}")
 
     return {
         "historical": historical,
         "forecast": forecast,
         "r2_score": round(r2, 4),
+        "confidence": confidence,
     }
