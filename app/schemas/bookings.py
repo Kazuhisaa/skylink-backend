@@ -43,6 +43,7 @@ class BookingCreate(BaseModel):
 
 class BookingRead(BaseModel):
     id: uuid.UUID
+    pnr: str
     flight: FlightListRead
     seat_class: SeatClassRead
     seat_number: Optional[str] = None
@@ -57,6 +58,7 @@ class BookingRead(BaseModel):
 
 class BookingListRead(BaseModel):
     id: uuid.UUID
+    pnr: str
     flight: FlightListRead
     seat_class: SeatClassRead
     seat_number: Optional[str] = None
