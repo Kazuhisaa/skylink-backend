@@ -5,6 +5,7 @@ from app.routers.bookings import router as bookings_router
 from app.routers.promotions import router as promotions_router
 from app.routers.ml import router as ml_router
 from app.routers.auth import router as auth_router
+from app.routers.payments import router as payments_router
 
 routers = [
     auth_router,
@@ -14,4 +15,5 @@ routers = [
     bookings_router,
     promotions_router,
     ml_router,
+    payments_router,
 ]
