@@ -108,7 +108,7 @@ def mock_email():
 
 def mock_reset_email():
     return patch(
-        "app.auth.router.send_password_reset_email",
+        "app.auth.register.send_verification_email",
         new_callable=AsyncMock,
     )
 
