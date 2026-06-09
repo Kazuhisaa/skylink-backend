@@ -4,15 +4,6 @@ from app.core.limiter import configure_limiter
 from app.core.redis import redis_client
 import logging
 
-from app.auth import router as authentications
-from app.routers.admin import router as admin_router
-from app.routers.users import router as users_router
-from app.routers.flights import router as flights_router
-from app.routers.bookings import router as bookings_router
-from app.routers.promotions import router as promotions_router
-
-from app.routers import db_conn_check
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -37,18 +28,8 @@ configure_limiter(app)
 
 API_PREFIX = "/api/v1"
 
-# Auth
-app.include_router(authentications.router, prefix=API_PREFIX)
-app.include_router(admin_router, prefix=API_PREFIX)
-app.include_router(users_router, prefix=API_PREFIX)
 
+from app.routers import routers
 
-
-# App logic
-app.include_router(flights_router, prefix=API_PREFIX)
-app.include_router(bookings_router, prefix=API_PREFIX)
-app.include_router(promotions_router, prefix=API_PREFIX)
-
-
-# Health check
-app.include_router(db_conn_check.router)
+for router in routers:
+    app.include_router(router, prefix=API_PREFIX)
