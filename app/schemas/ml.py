@@ -12,4 +12,5 @@ class RevenueForecastRead(BaseModel):
     historical: list[RevenueForecastPoint] = []
     forecast: list[RevenueForecastPoint] = []
     r2_score: Optional[float] = None
+    confidence: Optional[str] = None
     message: Optional[str] = None
