@@ -16,15 +16,18 @@ from app.auth.models import User
 async def seed_ml_data(test_session_factory, seed_users):
     admin_user = seed_users["admin"]
 
+    origin_code = f"M{uuid.uuid4().hex[:2].upper()}"
+    destination_code = f"C{uuid.uuid4().hex[:2].upper()}"
+
     origin = Airport(
-        iata_code="MNL",
+        iata_code=origin_code,
         name="Ninoy Aquino International Airport",
         city="Manila",
         country="Philippines",
         timezone="Asia/Manila",
     )
     destination = Airport(
-        iata_code="CEB",
+        iata_code=destination_code,
         name="Mactan-Cebu International Airport",
         city="Cebu",
         country="Philippines",
@@ -119,6 +122,8 @@ async def seed_ml_data(test_session_factory, seed_users):
         "aircraft": aircraft,
         "origin": origin,
         "destination": destination,
+        "origin_code": origin_code,
+        "destination_code": destination_code,
         "bookings": bookings,
         "target_booking": target_booking,
         "admin_user": admin_user,
@@ -294,10 +299,12 @@ class TestDemandForecast:
     async def test_demand_forecast_contains_seeded_route(
         self, admin_client: AsyncClient, seed_ml_data
     ):
+        origin_code = seed_ml_data["origin"].iata_code
+        destination_code = seed_ml_data["destination"].iata_code
         resp = await admin_client.get("/api/v1/admin/ml/demand-forecast")
         data = resp.json()
         routes = [r["route"] for r in data["routes"]]
-        assert any("MNL" in r and "CEB" in r for r in routes)
+        assert any(origin_code in r and destination_code in r for r in routes)
 
     async def test_demand_forecast_predicted_bookings_are_non_negative(
         self, admin_client: AsyncClient, seed_ml_data
