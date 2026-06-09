@@ -23,7 +23,7 @@ class PaymentResponse(BaseModel):
 # PayMongo Specific Schemas
 class PayMongoPaymentIntentCreate(BaseModel):
     amount: int
-    payment_method_allowed: List[str] = ["card", "paymaya", "gcash", "grab_pay"]
+    payment_method_allowed: List[str] = ["card", "paymaya", "gcash", "grab_pay", "paymongo_qr"]
     payment_method_options: Dict[str, Any] = {"card": {"installments": None}}
     currency: str = "PHP"
     description: Optional[str] = None

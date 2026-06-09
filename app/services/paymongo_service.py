@@ -33,7 +33,7 @@ class PayMongoService:
             "data": {
                 "attributes": {
                     "amount": amount,
-                    "payment_method_allowed": ["card", "paymaya", "gcash", "grab_pay"],
+                    "payment_method_allowed": ["card", "paymaya", "gcash", "grab_pay", "paymongo_qr"],
                     "currency": "PHP",
                     "description": description,
                     "metadata": metadata
