@@ -37,29 +37,6 @@ async def get_all_bookings(
     )
 
 
-# ─── PNR Endpoints ─────────────────────────────────────────────────────────────
-
-@router.get("/pnr/status", response_model=PNRStatusResult)
-@limiter.limit("30/minute")
-async def get_pnr_status(
-    request: Request,
-    pnr: str = Query(..., min_length=8, max_length=8),
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    return await booking_service.get_booking_by_pnr(pnr, db)
-
-@router.get("/pnr/public-status", response_model=PNRStatusResult)
-@limiter.limit("10/minute")
-async def get_pnr_public_status(
-    request: Request,
-    pnr: str = Query(..., min_length=8, max_length=8),
-    lastName: str = Query(...),
-    db: AsyncSession = Depends(get_db),
-):
-    return await booking_service.get_booking_by_pnr_public(pnr, lastName, db)
-
-
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
 
 @router.get("", response_model=PaginatedResponse[BookingListRead])
