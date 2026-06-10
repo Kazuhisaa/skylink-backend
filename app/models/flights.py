@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, CHAR, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, CHAR, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -87,7 +87,7 @@ class FlightSeatPricing(Base):
     seat_class_id = Column(Integer, ForeignKey("seat_classes.id"), nullable=False)
     total_seats = Column(Integer, nullable=False)
     available_seats = Column(Integer, nullable=False)
-    price = Column(Integer, nullable=False)  # store as centavos if PHP, or use Numeric
+    price = Column(Numeric(10, 2), nullable=False)
 
     flight = relationship("Flight", back_populates="seat_pricing")
     seat_class = relationship("SeatClass", back_populates="flight_pricing")
