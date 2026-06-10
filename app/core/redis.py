@@ -1,10 +1,10 @@
-import os
 import logging
 from redis import asyncio as aioredis
+from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+REDIS_URL = settings.REDIS_URL
 
 class RedisClient:
     def __init__(self):

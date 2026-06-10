@@ -3,8 +3,8 @@ import uuid
 import hmac
 import hashlib
 from datetime import datetime
-from typing import Optional, Dict, Any
-from fastapi import HTTPException, Request
+from typing import Dict, Any
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 from app.models.payments import Payment
 from app.models.bookings import Booking
 from app.services.paymongo_service import paymongo_service
-from app.core.config import settings
+from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 

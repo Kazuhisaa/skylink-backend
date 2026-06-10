@@ -7,7 +7,7 @@ from app.database import get_db
 from app.schemas.promotions import PromotionRead, PromotionCreate, PromotionUpdate
 from app.services import promotions_service
 from app.core.limiter import limiter
-from app.auth.dependencies import require_admin
+from app.core.dependencies import require_admin
 
 router = APIRouter(prefix="/promotions", tags=["Promotions"])
 

@@ -4,11 +4,11 @@ import uuid
 import math
 
 from app.database import get_db
-from app.auth.dependencies import get_current_user, require_admin
-from app.auth.models import User
+from app.core.dependencies import get_current_user, require_admin
+from app.models.auth import User
 from app.schemas.bookings import (
     BookingCreate, BookingRead, BookingListRead,
-    RescheduleRequest, CancelRequest, PNRStatusResult
+    RescheduleRequest, CancelRequest
 )
 from app.schemas.pagination import PaginatedResponse
 from app.services import bookings_service as booking_service

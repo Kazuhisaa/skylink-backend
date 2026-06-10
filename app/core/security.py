@@ -1,24 +1,12 @@
-import os
-from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from dotenv import load_dotenv
+from app.core.settings import settings
 
-env_path = Path(__file__).resolve().parents[2] / ".env"
-load_dotenv(dotenv_path=env_path)
-
-def _require(key: str) -> str:
-    val = os.getenv(key)
-    if not val:
-        raise RuntimeError(f"{key} is not set in environment")
-    return val
-
-
-JWT_SECRET_KEY: str = _require("JWT_SECRET_KEY")
-JWT_ALGORITHM: str = _require("JWT_ALGORITHM")
-ACCESS_TOKEN_EXPIRE_MINUTES: int = int(_require("ACCESS_TOKEN_EXPIRE_MINUTES"))
-BCRYPT_ROUNDS: int = int(_require("BCRYPT_ROUNDS"))
+JWT_SECRET_KEY = settings.JWT_SECRET_KEY
+JWT_ALGORITHM = settings.JWT_ALGORITHM
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
+BCRYPT_ROUNDS = settings.BCRYPT_ROUNDS
 
 pwd_context = CryptContext(schemes=["bcrypt"], bcrypt__rounds=BCRYPT_ROUNDS, deprecated="auto")
 

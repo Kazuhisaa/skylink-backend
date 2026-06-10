@@ -1,6 +1,6 @@
 import logging
 from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
-from app.core.config import settings
+from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 

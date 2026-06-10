@@ -3,8 +3,8 @@ import pytest_asyncio
 from unittest.mock import patch, AsyncMock
 from httpx import AsyncClient
 from sqlalchemy import delete
-from app.auth.models import User, LoginAttempt
-from app.auth.security import hash_password
+from app.models.auth import User, LoginAttempt
+from app.core.security import hash_password
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
@@ -101,14 +101,14 @@ async def seed_auth_users(test_session_factory, seed_users):
 def mock_email():
     """Patch email service so no real emails are sent during tests."""
     return patch(
-        "app.auth.register.send_verification_email",
+        "app.services.auth_services.send_verification_email",
         new_callable=AsyncMock,
     )
 
 
 def mock_reset_email():
     return patch(
-        "app.auth.register.send_verification_email",
+        "app.services.auth_services.send_verification_email",
         new_callable=AsyncMock,
     )
 

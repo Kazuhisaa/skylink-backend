@@ -3,26 +3,24 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from app.auth.login import verify_user
-from app.auth.register import create_passenger
-from app.auth.security import create_access_token, hash_password
-from app.auth.schemas import (
-    LoginRequest, 
-    RegisterRequest, 
-    TokenResponse, 
-    UserRead, 
-    ForgotPasswordRequest, 
-    ResetPasswordRequest
+from app.services.auth_services import verify_user, create_passenger, create_admin
+from app.services.google_service import google_login_or_register
+from app.core.security import create_access_token, hash_password
+from app.schemas.auth import (
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    UserRead,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    GoogleAuthRequest,
+    GoogleAuthResponse,
 )
 from app.database import get_db
-from app.auth.dependencies import require_admin, get_current_user
-from app.auth.admin_register import create_admin
-from app.auth.models import User
+from app.core.dependencies import require_admin, get_current_user
+from app.models.auth import User
 from app.services.email_service import send_password_reset_email
 from app.core.limiter import limiter
-
-from app.auth.google_service import google_login_or_register
-from app.auth.schemas import GoogleAuthRequest, GoogleAuthResponse
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 

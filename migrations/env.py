@@ -6,7 +6,10 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool, text
 from alembic import context
 
-from app.database import Base, SYNC_DATABASE_URL
+from app.database import Base
+from app.core.settings import settings
+
+SYNC_DATABASE_URL = settings.SYNC_DATABASE_URL
 import app.models
 
 config = context.config

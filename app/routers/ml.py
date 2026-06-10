@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.auth.dependencies import require_admin
+from app.core.dependencies import require_admin
 from app.schemas.ml import RevenueForecastRead
 from app.services import ml_service
 from app.core.limiter import limiter

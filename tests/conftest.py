@@ -15,12 +15,12 @@ from sqlalchemy import delete, text
 
 from app.main import app
 from app.database import Base, get_db          # get_db lives here
-from app.auth.dependencies import (
+from app.core.dependencies import (
     get_current_user,
     require_admin,
     require_passenger,
 )
-from app.auth.models import User, Role
+from app.models.auth import User, Role
 
 # ── Load test DB URL ──────────────────────────────────────────────────────────
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")

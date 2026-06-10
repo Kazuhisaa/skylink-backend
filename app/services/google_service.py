@@ -4,12 +4,12 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 import httpx
-from app.auth.models import User, Role
-from app.auth.security import create_access_token
-import os
+from app.models.auth import User, Role
+from app.core.security import create_access_token
 
+from app.core.settings import settings
 logger = logging.getLogger(__name__)
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
 
 async def google_login_or_register(token: str, db: AsyncSession, mode: str = "login") -> dict:
     # 1. Verify the token with Google

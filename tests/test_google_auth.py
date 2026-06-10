@@ -3,7 +3,7 @@ import pytest_asyncio
 from unittest.mock import patch, MagicMock, AsyncMock
 from httpx import AsyncClient
 from sqlalchemy import delete, select
-from app.auth.models import User
+from app.models.auth import User
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
@@ -34,7 +34,7 @@ def mock_google_userinfo(
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
 
-    return patch("app.auth.google_service.httpx.AsyncClient", return_value=mock_client)
+    return patch("app.services.google_service.httpx.AsyncClient", return_value=mock_client)
 
 
 def mock_google_userinfo_failure():
@@ -49,7 +49,7 @@ def mock_google_userinfo_failure():
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
     mock_client.__aexit__ = AsyncMock(return_value=False)
 
-    return patch("app.auth.google_service.httpx.AsyncClient", return_value=mock_client)
+    return patch("app.services.google_service.httpx.AsyncClient", return_value=mock_client)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

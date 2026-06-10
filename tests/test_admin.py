@@ -5,7 +5,7 @@ from httpx import AsyncClient
 from sqlalchemy import delete
 from app.models.bookings import Booking
 from app.models.flights import Airport, Aircraft, SeatClass, Flight, AircraftSeat
-from app.auth.models import LoginAttempt
+from app.models.auth import LoginAttempt
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
