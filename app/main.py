@@ -1,7 +1,8 @@
 from fastapi import FastAPI
-from app.core.config import configure_middlewares, debug_mode
+from app.core.middleware import configure_middlewares
 from app.core.limiter import configure_limiter
 from app.core.redis import redis_client
+from app.core.settings import settings
 import logging
 
 
@@ -11,7 +12,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 
-app = FastAPI(**debug_mode())
+app = FastAPI(**settings.app_config)
 
 @app.on_event("startup")
 async def startup_event():
