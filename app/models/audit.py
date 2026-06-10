@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, ForeignKey, TIMESTAMP, Text
+from sqlalchemy import Column, Integer, ForeignKey, TIMESTAMP, Text, Numeric
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -26,7 +26,7 @@ class Cancellation(Base):
     booking_id = Column(UUID(as_uuid=True), ForeignKey("bookings.id"), unique=True, nullable=False)
     cancelled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     reason = Column(Text)
-    refund_amount = Column(Integer)
+    refund_amount = Column(Numeric(10, 2))
     cancelled_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
     booking = relationship("Booking", back_populates="cancellation", foreign_keys=[booking_id])

@@ -12,15 +12,15 @@ class BookingReportFilter(BaseModel):
 class MonthlyRevenuePoint(BaseModel):
     month: str        # e.g. "Jan", "Feb"
     year: int
-    revenue: int
+    revenue: float
     bookings: int
 
 class BookingReportRead(BaseModel):
     total_bookings: int
     confirmed_bookings: int
     cancelled_bookings: int
-    total_revenue: int
-    confirmed_revenue: int
+    total_revenue: float
+    confirmed_revenue: float
     monthly_revenue: list[MonthlyRevenuePoint] = []
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
@@ -92,7 +92,7 @@ class AircraftSeatRead(BaseModel):
 class RouteBookingPoint(BaseModel):
     route: str       
     bookings: int
-    revenue: int
+    revenue: float
 
 class RouteReportRead(BaseModel):
     routes: list[RouteBookingPoint] = []
@@ -145,7 +145,7 @@ class KPIRead(BaseModel):
     total_flights: int
     total_bookings: int
     total_users: int
-    total_revenue: int
+    total_revenue: float
     flights_change: float
     bookings_change: float
     users_change: float
