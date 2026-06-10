@@ -1,7 +1,8 @@
-from pydantic import BaseModel, field_validator
-from datetime import datetime, date
-from typing import Optional
 import uuid
+from datetime import date, datetime
+from typing import Optional
+
+from pydantic import BaseModel, field_validator
 
 from app.schemas.flights import FlightListRead, SeatClassRead
 

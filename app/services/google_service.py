@@ -1,22 +1,25 @@
-import uuid
 import logging
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-import httpx
-from app.models.auth import User, Role
-from app.core.security import create_access_token
+import uuid
 
+import httpx
+from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.security import create_access_token
 from app.core.settings import settings
+from app.models.auth import Role, User
+
 logger = logging.getLogger(__name__)
 GOOGLE_CLIENT_ID = settings.GOOGLE_CLIENT_ID
+
 
 async def google_login_or_register(token: str, db: AsyncSession, mode: str = "login") -> dict:
     # 1. Verify the token with Google
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "https://www.googleapis.com/oauth2/v3/userinfo",
-            headers={"Authorization": f"Bearer {token}"}
+            headers={"Authorization": f"Bearer {token}"},
         )
         if response.status_code != 200:
             logger.warning(f"[GOOGLE AUTH] Failed to fetch user info: {response.status_code}")
@@ -43,11 +46,11 @@ async def google_login_or_register(token: str, db: AsyncSession, mode: str = "lo
 
     if user:
         # Existing user — link google_id if not yet linked
-        if not user.google_id:          # type: ignore
+        if not user.google_id:  # type: ignore
             user.google_id = google_id  # type: ignore
             await db.commit()
             await db.refresh(user)
-        if not user.is_active:          # type: ignore
+        if not user.is_active:  # type: ignore
             raise HTTPException(status_code=403, detail="Account is deactivated.")
 
         # If on register page but account already exists, just log them in
@@ -66,7 +69,7 @@ async def google_login_or_register(token: str, db: AsyncSession, mode: str = "lo
         role = default_role.scalar_one_or_none()
         if not role:
             raise HTTPException(status_code=500, detail="Default role not found.")
-        
+
         user = User(
             id=uuid.uuid4(),
             email=email,
@@ -85,5 +88,5 @@ async def google_login_or_register(token: str, db: AsyncSession, mode: str = "lo
     # 4. Issue JWT
     return {
         "access_token": create_access_token({"sub": str(user.id), "role_id": user.role_id}),
-        "token_type": "bearer"
+        "token_type": "bearer",
     }

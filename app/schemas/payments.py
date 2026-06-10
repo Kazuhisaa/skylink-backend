@@ -1,12 +1,15 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List, Any, Dict
 import uuid
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+from pydantic import BaseModel, Field
+
 
 class PaymentCreate(BaseModel):
     booking_id: uuid.UUID
     amount: int  # in centavos for PHP
     method: str = "card"
+
 
 class PaymentResponse(BaseModel):
     id: uuid.UUID
@@ -20,6 +23,7 @@ class PaymentResponse(BaseModel):
     class Config:
         from_attributes = True
 
+
 # PayMongo Specific Schemas
 class PayMongoPaymentIntentCreate(BaseModel):
     amount: int
@@ -28,6 +32,7 @@ class PayMongoPaymentIntentCreate(BaseModel):
     currency: str = "PHP"
     description: Optional[str] = None
     metadata: Dict[str, Any] = {}
+
 
 class PayMongoWebhookPayload(BaseModel):
     data: Dict[str, Any]

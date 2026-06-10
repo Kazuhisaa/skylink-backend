@@ -1,9 +1,12 @@
 import uuid
-from sqlalchemy import Column, Integer, String, ForeignKey, TIMESTAMP, Date, Numeric
+
+from sqlalchemy import TIMESTAMP, Column, Date, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class Booking(Base):
     __tablename__ = "bookings"
@@ -23,7 +26,9 @@ class Booking(Base):
     seat_class = relationship("SeatClass", back_populates="bookings")
     passengers = relationship("Passenger", back_populates="booking")
     payment = relationship("Payment", back_populates="booking", uselist=False)
-    reschedule_history = relationship("RescheduleHistory", back_populates="booking", foreign_keys="RescheduleHistory.booking_id")
+    reschedule_history = relationship(
+        "RescheduleHistory", back_populates="booking", foreign_keys="RescheduleHistory.booking_id"
+    )
     cancellation = relationship("Cancellation", back_populates="booking", uselist=False)
 
     @property

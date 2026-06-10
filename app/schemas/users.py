@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+import uuid
 from datetime import datetime
 from typing import Optional
-import uuid
+
+from pydantic import BaseModel
 
 
 class UserRead(BaseModel):

@@ -1,15 +1,16 @@
 import uuid
-import pytest_asyncio
 from datetime import date, timedelta
+
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import delete
 
 from app.models.promotions import Promotion
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def valid_promotion_payload(**overrides) -> dict:
     base = {
@@ -31,6 +32,7 @@ def valid_promotion_payload(**overrides) -> dict:
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def seed_promotions(test_session_factory, seed_users):
@@ -71,7 +73,7 @@ async def seed_promotions(test_session_factory, seed_users):
         title="Expired Deal",
         sale_price="500.00",
         original_price="1000.00",
-        valid_until=today - timedelta(days=1),   # yesterday — expired
+        valid_until=today - timedelta(days=1),  # yesterday — expired
         image_url="https://example.com/expired.jpg",
     )
 
@@ -89,11 +91,13 @@ async def seed_promotions(test_session_factory, seed_users):
         async with session.begin():
             await session.execute(
                 delete(Promotion).where(
-                    Promotion.id.in_([
-                        promo_active_a.id,
-                        promo_active_b.id,
-                        promo_expired.id,
-                    ])
+                    Promotion.id.in_(
+                        [
+                            promo_active_a.id,
+                            promo_active_b.id,
+                            promo_expired.id,
+                        ]
+                    )
                 )
             )
 
@@ -101,6 +105,7 @@ async def seed_promotions(test_session_factory, seed_users):
 # ══════════════════════════════════════════════════════════════════════════════
 # GET /promotions
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestGetAllPromotions:
     async def test_anyone_can_list_promotions(
@@ -130,7 +135,15 @@ class TestGetAllPromotions:
     ):
         resp = await unauthenticated_client.get("/api/v1/promotions")
         item = resp.json()[0]
-        for field in ("id", "title", "sale_price", "original_price", "valid_until", "image_url", "created_at"):
+        for field in (
+            "id",
+            "title",
+            "sale_price",
+            "original_price",
+            "valid_until",
+            "image_url",
+            "created_at",
+        ):
             assert field in item
 
     async def test_passenger_can_list_promotions(
@@ -139,9 +152,7 @@ class TestGetAllPromotions:
         resp = await passenger_client.get("/api/v1/promotions")
         assert resp.status_code == 200
 
-    async def test_admin_can_list_promotions(
-        self, admin_client: AsyncClient, seed_promotions
-    ):
+    async def test_admin_can_list_promotions(self, admin_client: AsyncClient, seed_promotions):
         resp = await admin_client.get("/api/v1/promotions")
         assert resp.status_code == 200
 
@@ -149,6 +160,7 @@ class TestGetAllPromotions:
 # ══════════════════════════════════════════════════════════════════════════════
 # GET /promotions/{promotion_id}
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestGetPromotion:
     async def test_anyone_can_get_active_promotion_by_id(
@@ -177,23 +189,27 @@ class TestGetPromotion:
         resp = await unauthenticated_client.get(f"/api/v1/promotions/{promo_id}")
         data = resp.json()
         for field in (
-            "id", "title", "sale_price", "original_price",
-            "discount_text", "badge_text", "badge_type",
-            "valid_until", "image_url", "destination_city",
-            "destination_code", "created_at",
+            "id",
+            "title",
+            "sale_price",
+            "original_price",
+            "discount_text",
+            "badge_text",
+            "badge_type",
+            "valid_until",
+            "image_url",
+            "destination_city",
+            "destination_code",
+            "created_at",
         ):
             assert field in data
 
-    async def test_nonexistent_promotion_returns_404(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_nonexistent_promotion_returns_404(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get(f"/api/v1/promotions/{uuid.uuid4()}")
         assert resp.status_code == 404
         assert resp.json()["detail"] == "Promotion not found."
 
-    async def test_invalid_uuid_returns_422(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_invalid_uuid_returns_422(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get("/api/v1/promotions/not-a-uuid")
         assert resp.status_code == 422
 
@@ -201,6 +217,7 @@ class TestGetPromotion:
 # ══════════════════════════════════════════════════════════════════════════════
 # POST /promotions  (admin only)
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 class TestCreatePromotion:
     async def test_admin_can_create_promotion(
@@ -246,21 +263,19 @@ class TestCreatePromotion:
                     delete(Promotion).where(Promotion.id == uuid.UUID(data["id"]))
                 )
 
-    async def test_passenger_cannot_create_promotion(
-        self, passenger_client: AsyncClient
-    ):
+    async def test_passenger_cannot_create_promotion(self, passenger_client: AsyncClient):
         resp = await passenger_client.post("/api/v1/promotions", json=valid_promotion_payload())
         assert resp.status_code == 403
 
     async def test_unauthenticated_cannot_create_promotion(
         self, unauthenticated_client: AsyncClient
     ):
-        resp = await unauthenticated_client.post("/api/v1/promotions", json=valid_promotion_payload())
+        resp = await unauthenticated_client.post(
+            "/api/v1/promotions", json=valid_promotion_payload()
+        )
         assert resp.status_code == 401
 
-    async def test_missing_required_fields_returns_422(
-        self, admin_client: AsyncClient
-    ):
+    async def test_missing_required_fields_returns_422(self, admin_client: AsyncClient):
         resp = await admin_client.post("/api/v1/promotions", json={})
         assert resp.status_code == 422
 
@@ -300,19 +315,16 @@ class TestCreatePromotion:
 
         async with test_session_factory() as session:
             async with session.begin():
-                await session.execute(
-                    delete(Promotion).where(Promotion.id == uuid.UUID(promo_id))
-                )
+                await session.execute(delete(Promotion).where(Promotion.id == uuid.UUID(promo_id)))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # PUT /promotions/{promotion_id}  (admin only)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestUpdatePromotion:
-    async def test_admin_can_update_title(
-        self, admin_client: AsyncClient, test_session_factory
-    ):
+    async def test_admin_can_update_title(self, admin_client: AsyncClient, test_session_factory):
         create_resp = await admin_client.post(
             "/api/v1/promotions", json=valid_promotion_payload(title="Before Update")
         )
@@ -328,16 +340,12 @@ class TestUpdatePromotion:
 
         async with test_session_factory() as session:
             async with session.begin():
-                await session.execute(
-                    delete(Promotion).where(Promotion.id == uuid.UUID(promo_id))
-                )
+                await session.execute(delete(Promotion).where(Promotion.id == uuid.UUID(promo_id)))
 
     async def test_admin_can_update_valid_until(
         self, admin_client: AsyncClient, test_session_factory
     ):
-        create_resp = await admin_client.post(
-            "/api/v1/promotions", json=valid_promotion_payload()
-        )
+        create_resp = await admin_client.post("/api/v1/promotions", json=valid_promotion_payload())
         promo_id = create_resp.json()["id"]
         new_date = str(date.today() + timedelta(days=60))
 
@@ -350,9 +358,7 @@ class TestUpdatePromotion:
 
         async with test_session_factory() as session:
             async with session.begin():
-                await session.execute(
-                    delete(Promotion).where(Promotion.id == uuid.UUID(promo_id))
-                )
+                await session.execute(delete(Promotion).where(Promotion.id == uuid.UUID(promo_id)))
 
     async def test_partial_update_only_changes_provided_fields(
         self, admin_client: AsyncClient, test_session_factory
@@ -375,13 +381,9 @@ class TestUpdatePromotion:
 
         async with test_session_factory() as session:
             async with session.begin():
-                await session.execute(
-                    delete(Promotion).where(Promotion.id == uuid.UUID(promo_id))
-                )
+                await session.execute(delete(Promotion).where(Promotion.id == uuid.UUID(promo_id)))
 
-    async def test_update_nonexistent_promotion_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_update_nonexistent_promotion_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.put(
             f"/api/v1/promotions/{uuid.uuid4()}",
             json={"title": "Ghost"},
@@ -389,9 +391,7 @@ class TestUpdatePromotion:
         assert resp.status_code == 404
         assert resp.json()["detail"] == "Promotion not found."
 
-    async def test_update_invalid_uuid_returns_422(
-        self, admin_client: AsyncClient
-    ):
+    async def test_update_invalid_uuid_returns_422(self, admin_client: AsyncClient):
         resp = await admin_client.put(
             "/api/v1/promotions/not-a-uuid",
             json={"title": "Bad"},
@@ -423,6 +423,7 @@ class TestUpdatePromotion:
 # DELETE /promotions/{promotion_id}  (admin only)
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestDeletePromotion:
     async def test_admin_can_delete_promotion(
         self, admin_client: AsyncClient, unauthenticated_client: AsyncClient, test_session_factory
@@ -439,16 +440,12 @@ class TestDeletePromotion:
         confirm = await unauthenticated_client.get(f"/api/v1/promotions/{promo_id}")
         assert confirm.status_code == 404
 
-    async def test_delete_nonexistent_promotion_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_nonexistent_promotion_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.delete(f"/api/v1/promotions/{uuid.uuid4()}")
         assert resp.status_code == 404
         assert resp.json()["detail"] == "Promotion not found."
 
-    async def test_delete_invalid_uuid_returns_422(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_invalid_uuid_returns_422(self, admin_client: AsyncClient):
         resp = await admin_client.delete("/api/v1/promotions/not-a-uuid")
         assert resp.status_code == 422
 

@@ -1,12 +1,15 @@
-from pydantic import BaseModel
 from typing import Optional
 
+from pydantic import BaseModel
+
 # ─── Revenue Forecast ─────────────────────────────────────────────────────────
+
 
 class RevenueForecastPoint(BaseModel):
     month: str
     year: int
     revenue: float
+
 
 class RevenueForecastRead(BaseModel):
     historical: list[RevenueForecastPoint] = []

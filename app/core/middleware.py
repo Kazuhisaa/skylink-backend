@@ -1,12 +1,14 @@
 from fastapi.middleware.cors import CORSMiddleware
-from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.requests import Request
+
 from app.core.settings import settings
 
 DEBUG = settings.DEBUG
 ALLOWED_HOSTS = settings.allowed_hosts_list
 ALLOWED_ORIGINS = settings.allowed_origins_list
+
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -19,9 +21,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "geolocation=(), microphone=(), camera=(), payment=()"
         )
         if not DEBUG:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
 
 
@@ -42,6 +42,3 @@ def configure_middlewares(app):
         TrustedHostMiddleware,
         allowed_hosts=ALLOWED_HOSTS,  # replace with your production hosts
     )
-
-
-

@@ -1,25 +1,34 @@
-from fastapi import APIRouter, Depends, Request, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-import uuid
 import math
+import uuid
 
-from app.database import get_db
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.dependencies import get_current_user, require_admin
+from app.core.limiter import limiter
+from app.database import get_db
 from app.models.auth import User
 from app.schemas.bookings import (
-    BookingCreate, BookingRead, BookingListRead,
-    RescheduleRequest, CancelRequest
+    BookingCreate,
+    BookingListRead,
+    BookingRead,
+    CancelRequest,
+    RescheduleRequest,
 )
 from app.schemas.pagination import PaginatedResponse
 from app.services import bookings_service as booking_service
-from app.core.limiter import limiter
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
 
 # ─── Admin Endpoints ───────────────────────────────────────────────────────────
 
-@router.get("/admin/all", response_model=PaginatedResponse[BookingListRead], dependencies=[Depends(require_admin)])
+
+@router.get(
+    "/admin/all",
+    response_model=PaginatedResponse[BookingListRead],
+    dependencies=[Depends(require_admin)],
+)
 @limiter.limit("60/minute")
 async def get_all_bookings(
     request: Request,
@@ -33,11 +42,12 @@ async def get_all_bookings(
         total=total,
         page=page,
         size=size,
-        pages=math.ceil(total / size) if total > 0 else 0
+        pages=math.ceil(total / size) if total > 0 else 0,
     )
 
 
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
+
 
 @router.get("", response_model=PaginatedResponse[BookingListRead])
 @limiter.limit("60/minute")
@@ -54,7 +64,7 @@ async def get_user_bookings(
         total=total,
         page=page,
         size=size,
-        pages=math.ceil(total / size) if total > 0 else 0
+        pages=math.ceil(total / size) if total > 0 else 0,
     )
 
 

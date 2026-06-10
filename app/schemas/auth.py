@@ -1,11 +1,12 @@
-from pydantic import BaseModel, EmailStr, StringConstraints
-from typing import Annotated, Optional
-from datetime import datetime
 import uuid
+from datetime import datetime
+from typing import Annotated, Optional
+
+from pydantic import BaseModel, EmailStr, StringConstraints
 
 PasswordStr = Annotated[str, StringConstraints(min_length=8, max_length=72)]
 NameStr = Annotated[str, StringConstraints(min_length=1, max_length=100)]
-PhoneStr = Annotated[str, StringConstraints(pattern=r'^(\+?63|0)9\d{9}$')]
+PhoneStr = Annotated[str, StringConstraints(pattern=r"^(\+?63|0)9\d{9}$")]
 
 
 class LoginRequest(BaseModel):
@@ -46,11 +47,14 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: PasswordStr
 
+
 # --  Google auth ----
+
 
 class GoogleAuthRequest(BaseModel):
     token: str
     mode: str = "login"  # "login" or "register"
+
 
 class GoogleAuthResponse(BaseModel):
     access_token: str

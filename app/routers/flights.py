@@ -1,22 +1,26 @@
+import uuid
+from datetime import datetime
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
-from datetime import datetime
-import uuid
 
-from app.database import get_db
 from app.core.dependencies import get_current_user, require_admin
-from app.schemas.flights import FlightUpdate, FlightRead, FlightListRead, FlightCreateWithPricing
-from app.services import flights_service
 from app.core.limiter import limiter
+from app.database import get_db
+from app.schemas.flights import FlightCreateWithPricing, FlightListRead, FlightRead, FlightUpdate
+from app.services import flights_service
 
 router = APIRouter(prefix="/flights", tags=["Flights"])
 
 
 import math
+
 from app.schemas.pagination import PaginatedResponse
+
 ...
 # ─── Passenger ─────────────────────────────────────────────────────────────────
+
 
 @router.get("", response_model=PaginatedResponse[FlightListRead])
 @limiter.limit("60/minute")
@@ -38,7 +42,7 @@ async def search_flights(
         total=total,
         page=page,
         size=size,
-        pages=math.ceil(total / size) if total > 0 else 0
+        pages=math.ceil(total / size) if total > 0 else 0,
     )
 
 
@@ -49,6 +53,7 @@ async def get_flight(request: Request, flight_id: uuid.UUID, db: AsyncSession = 
 
 
 # ─── Admin ─────────────────────────────────────────────────────────────────────
+
 
 @router.post("", response_model=FlightRead, status_code=201, dependencies=[Depends(require_admin)])
 @limiter.limit("10/minute")

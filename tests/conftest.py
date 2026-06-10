@@ -1,26 +1,29 @@
 import os
+
 os.environ["ALLOWED_HOSTS"] = "localhost,127.0.0.1,testserver,test"
 
 from app.core.limiter import limiter
+
 limiter.enabled = False
 
 import uuid
+from pathlib import Path
+
 import pytest_asyncio
 from dotenv import load_dotenv
-from pathlib import Path
-from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.pool import NullPool
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import delete, text
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
-from app.main import app
-from app.database import Base, get_db          # get_db lives here
 from app.core.dependencies import (
     get_current_user,
     require_admin,
     require_passenger,
 )
-from app.models.auth import User, Role
+from app.database import Base, get_db  # get_db lives here
+from app.main import app
+from app.models.auth import Role, User
 
 # ── Load test DB URL ──────────────────────────────────────────────────────────
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -103,7 +106,9 @@ async def seed_users(test_session_factory):
 
     async with test_session_factory() as session:
         async with session.begin():
-            await session.execute(delete(User).where(User.email.in_(["admin@test.com", "passenger@test.com"])))
+            await session.execute(
+                delete(User).where(User.email.in_(["admin@test.com", "passenger@test.com"]))
+            )
             await session.execute(delete(Role).where(Role.id.in_([1, 2])))
 
 
@@ -112,17 +117,22 @@ async def seed_users(test_session_factory):
 def make_current_user_override(user: User):
     async def override():
         return user
+
     return override
+
 
 # require_admin/require_passenger are sync — override must be sync
 def make_admin_override(user: User):
     def override():
         return user
+
     return override
+
 
 def make_passenger_override(user: User):
     def override():
         return user
+
     return override
 
 
@@ -131,6 +141,7 @@ def make_get_db_override(session_factory):
     async def override():
         async with session_factory() as session:
             yield session
+
     return override
 
 

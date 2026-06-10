@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class KPIRead(BaseModel):
     total_flights: int
     total_bookings: int

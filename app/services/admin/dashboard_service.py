@@ -1,28 +1,26 @@
 import logging
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from app.models.bookings import Booking
 
-from app.models.flights import Flight
 from app.models.auth import User
+from app.models.bookings import Booking
+from app.models.flights import Flight
 
 logger = logging.getLogger(__name__)
 
 
-
-
-
-
 # ─── KPI dashboard Services ────────────────────────────────────────────────────────────
 
+
 async def get_kpi_summary(db: AsyncSession) -> dict:
-    from datetime import timezone, datetime
+    from datetime import datetime, timezone
+
     now = datetime.now(timezone.utc)
-    
+
     # Current month boundaries
     current_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    
+
     # Previous month boundaries
     if current_start.month == 1:
         prev_start = current_start.replace(year=current_start.year - 1, month=12)
@@ -47,10 +45,14 @@ async def get_kpi_summary(db: AsyncSession) -> dict:
 
     # Revenue
     cur_revenue_result = await db.execute(
-        select(func.coalesce(func.sum(Booking.total_price), 0)).where(Booking.booked_at >= current_start)
+        select(func.coalesce(func.sum(Booking.total_price), 0)).where(
+            Booking.booked_at >= current_start
+        )
     )
     prev_revenue_result = await db.execute(
-        select(func.coalesce(func.sum(Booking.total_price), 0)).where(Booking.booked_at >= prev_start, Booking.booked_at < prev_end)
+        select(func.coalesce(func.sum(Booking.total_price), 0)).where(
+            Booking.booked_at >= prev_start, Booking.booked_at < prev_end
+        )
     )
     cur_revenue = cur_revenue_result.scalar() or 0
     prev_revenue = prev_revenue_result.scalar() or 0
@@ -60,7 +62,9 @@ async def get_kpi_summary(db: AsyncSession) -> dict:
         select(func.count()).select_from(User).where(User.created_at >= current_start)
     )
     prev_users_result = await db.execute(
-        select(func.count()).select_from(User).where(User.created_at >= prev_start, User.created_at < prev_end)
+        select(func.count())
+        .select_from(User)
+        .where(User.created_at >= prev_start, User.created_at < prev_end)
     )
     cur_users = cur_users_result.scalar() or 0
     prev_users = prev_users_result.scalar() or 0
@@ -70,7 +74,9 @@ async def get_kpi_summary(db: AsyncSession) -> dict:
         select(func.count()).select_from(Flight).where(Flight.created_at >= current_start)
     )
     prev_flights_result = await db.execute(
-        select(func.count()).select_from(Flight).where(Flight.created_at >= prev_start, Flight.created_at < prev_end)
+        select(func.count())
+        .select_from(Flight)
+        .where(Flight.created_at >= prev_start, Flight.created_at < prev_end)
     )
     cur_flights = cur_flights_result.scalar() or 0
     prev_flights = prev_flights_result.scalar() or 0
@@ -83,8 +89,7 @@ async def get_kpi_summary(db: AsyncSession) -> dict:
     total_users_result = await db.execute(select(func.count()).select_from(User))
     total_revenue_result = await db.execute(
         select(func.coalesce(func.sum(Booking.total_price), 0)).where(
-            Booking.status != "cancelled",
-            Booking.booked_at >= current_start
+            Booking.status != "cancelled", Booking.booked_at >= current_start
         )
     )
 
@@ -100,10 +105,10 @@ async def get_kpi_summary(db: AsyncSession) -> dict:
     }
 
 
-
 # ─── Revenue by Route ─────────────────────────────────────────────────────────
 async def get_revenue_by_route(db: AsyncSession) -> list:
     from sqlalchemy.orm import selectinload
+
     result = await db.execute(
         select(Booking)
         .options(
@@ -114,6 +119,7 @@ async def get_revenue_by_route(db: AsyncSession) -> list:
     )
     bookings = result.scalars().all()
     from collections import defaultdict
+
     route_map: dict = defaultdict(int)
     for b in bookings:
         if not b.flight or not b.flight.origin_airport or not b.flight.destination_airport:

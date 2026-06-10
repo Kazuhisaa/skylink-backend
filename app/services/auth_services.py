@@ -1,12 +1,14 @@
 import logging
-import uuid
 import secrets
+import uuid
 from datetime import datetime, timedelta, timezone
+
 from fastapi import HTTPException
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
-from app.models.auth import User, Role, LoginAttempt
+
 from app.core.security import hash_password, verify_password
+from app.models.auth import LoginAttempt, Role, User
 from app.schemas.auth import RegisterRequest
 from app.services.email_service import send_verification_email
 
