@@ -595,9 +595,16 @@ async def get_kpi_summary(db: AsyncSession) -> dict:
 
     # Totals (all time) for display values
     total_flights_result = await db.execute(select(func.count()).select_from(Flight))
-    total_bookings_result = await db.execute(select(func.count()).select_from(Booking))
+    total_bookings_result = await db.execute(
+        select(func.count()).select_from(Booking).where(Booking.status != "cancelled")
+    )
     total_users_result = await db.execute(select(func.count()).select_from(User))
-    total_revenue_result = await db.execute(select(func.coalesce(func.sum(Booking.total_price), 0)))
+    total_revenue_result = await db.execute(
+        select(func.coalesce(func.sum(Booking.total_price), 0)).where(
+            Booking.status != "cancelled",
+            Booking.booked_at >= current_start
+        )
+    )
 
     return {
         "total_flights": total_flights_result.scalar() or 0,
