@@ -213,9 +213,8 @@ async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
         lead_time = max(0, (departure_time - booked_at).days)
         return [
             row.seat_class_id,
-            row.total_price,
+            float(row.total_price),
             lead_time,
-            1 if origin == 'MNL' else 0,
         ]
 
     X, y = [], []
@@ -239,9 +238,8 @@ async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
     lead_time = max(0, (booking.departure_time - booking.booked_at).days)
     target_features = np.array([[
         booking.seat_class_id,
-        booking.total_price,
+        float(booking.total_price),
         lead_time,
-        1 if booking.origin == 'MNL' else 0,
     ]])
     target_scaled = scaler.transform(target_features)
     risk_score = float(model.predict_proba(target_scaled)[0][1]) * 100

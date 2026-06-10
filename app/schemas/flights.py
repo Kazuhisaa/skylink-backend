@@ -47,7 +47,7 @@ class FlightSeatPricingRead(BaseModel):
     seat_class: SeatClassRead
     total_seats: int
     available_seats: int
-    price: int
+    price: float
 
     model_config = {"from_attributes": True}
 
@@ -120,8 +120,7 @@ class FlightListRead(BaseModel):
 # --- Flight Seat Pricing Create (used when creating a flight) ---
 class FlightSeatPricingCreate(BaseModel):
     seat_class_id: int
-    price: int
-
+    price: float
 
 class FlightCreateWithPricing(FlightCreate):
     seat_pricing: Optional[list[FlightSeatPricingCreate]] = None

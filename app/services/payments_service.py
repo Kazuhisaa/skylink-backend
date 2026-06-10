@@ -45,8 +45,8 @@ async def create_payment_intent(booking_id: uuid.UUID, user_id: uuid.UUID, db: A
             }
 
     # 3. Create Payment Intent in PayMongo
-    # total_price is already stored in centavos in the database
-    amount_centavos = int(booking.total_price)
+    # total_price is stored in pesos (Numeric 10,2). PayMongo requires centavos (integer).
+    amount_centavos = int(float(booking.total_price) * 100)
     description = f"Payment for Booking {booking_id}"
     metadata = {
         "booking_id": str(booking_id),
