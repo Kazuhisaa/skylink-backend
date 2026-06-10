@@ -2,43 +2,8 @@ from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional
 import uuid
-
-# --- Airport ---
-class AirportRead(BaseModel):
-    id: int
-    iata_code: str
-    name: str
-    city: str
-    country: str
-    timezone: str
-    about: Optional[str] = None          
-    highlights: Optional[list[str]] = None  
-    best_time: Optional[str] = None      
-    image_url: Optional[str] = None     
-    model_config = {"from_attributes": True}
-
-
-# --- Aircraft ---
-class AircraftRead(BaseModel):
-    id: int
-    model: str
-    total_seats: int
-    registration: str
-    seats: Optional[list["AircraftSeatRead"]] = None
-
-    model_config = {"from_attributes": True}
-
-
-from app.schemas.admin import AircraftSeatRead
-AircraftRead.model_rebuild()
-
-
-# --- Seat Class ---
-class SeatClassRead(BaseModel):
-    id: int
-    name: str
-
-    model_config = {"from_attributes": True}
+from app.schemas.admin.aircraft import SeatClassRead, AircraftRead
+from app.schemas.admin.airports import AirportRead
 
 
 # --- Flight Seat Pricing ---
@@ -52,7 +17,6 @@ class FlightSeatPricingRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# --- Flight ---
 class FlightCreate(BaseModel):
     flight_number: str
     aircraft_id: int

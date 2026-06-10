@@ -5,8 +5,8 @@ import uuid
 import math
 
 from app.database import get_db
-from app.auth.dependencies import get_current_user, require_admin
-from app.auth.models import User
+from app.core.dependencies import get_current_user, require_admin
+from app.models.auth import User
 from app.schemas.users import UserRead, UserUpdate, UserStatusUpdate
 from app.schemas.pagination import PaginatedResponse
 from app.services import users_service

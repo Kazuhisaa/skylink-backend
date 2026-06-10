@@ -41,9 +41,7 @@ async def create_promotion(promotion_data: PromotionCreate, db: AsyncSession) ->
     return new_promotion
 
 
-async def update_promotion(
-    promotion_id: uuid.UUID, body: PromotionUpdate, db: AsyncSession
-) -> Promotion:
+async def update_promotion(promotion_id: uuid.UUID, body: PromotionUpdate, db: AsyncSession) -> Promotion:
     result = await db.execute(select(Promotion).where(Promotion.id == promotion_id))
     promotion = result.scalar_one_or_none()
     if not promotion:

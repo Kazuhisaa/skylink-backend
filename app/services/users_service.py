@@ -3,7 +3,7 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
-from app.auth.models import User
+from app.models.auth import User
 from app.schemas.users import UserUpdate, UserStatusUpdate
 
 logger = logging.getLogger(__name__)

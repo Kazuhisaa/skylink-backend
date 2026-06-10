@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
-from app.auth.dependencies import get_current_user
-from app.auth.models import User
+from app.core.dependencies import get_current_user
+from app.models.auth import User
 from app.schemas.bookings import PNRStatusResult
 from app.services import bookings_service as booking_service
 from app.core.limiter import limiter

@@ -4,8 +4,8 @@ import uuid
 import logging
 
 from app.database import get_db
-from app.auth.dependencies import get_current_user
-from app.auth.models import User
+from app.core.dependencies import get_current_user
+from app.models.auth import User
 from app.services import payments_service
 from app.core.limiter import limiter
 
