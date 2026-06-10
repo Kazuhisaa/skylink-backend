@@ -8,7 +8,7 @@ from app.core.dependencies import require_admin
 from app.schemas.admin.reports import BookingReportRead, CancellationReportRead, UserGrowthReportRead, ActivityLogListRead, RouteReportRead
 
 
-from app.services.admin import report_service
+from app.services.admin import reports_service
 from app.services.admin import aircraft_service
 from app.core.limiter import limiter
 
@@ -33,7 +33,7 @@ async def get_route_report(
     date_to: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await report_service.get_route_report(db, date_from, date_to)
+    return await reports_service.get_route_report(db, date_from, date_to)
 
 
 # ─── Cancellation Report ──────────────────────────────────────────────────────────────────
@@ -45,7 +45,7 @@ async def get_cancellation_report(
     date_to: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await report_service.get_cancellation_report(db, date_from, date_to)
+    return await reports_service.get_cancellation_report(db, date_from, date_to)
 
 # ─── User Growth ──────────────────────────────────────────────────────────────────
 @router.get("/reports/user-growth", response_model=UserGrowthReportRead, dependencies=[Depends(require_admin)])
@@ -56,7 +56,7 @@ async def get_user_growth_report(
     date_to: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await report_service.get_user_growth_report(db, date_from, date_to)
+    return await reports_service.get_user_growth_report(db, date_from, date_to)
 
 
 @router.get("/activity-logs", response_model=ActivityLogListRead, dependencies=[Depends(require_admin)])
@@ -70,4 +70,4 @@ async def get_activity_logs(
     date_to: Optional[datetime] = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    return await report_service.get_activity_logs(db, page, size, search, date_from, date_to)
+    return await reports_service.get_activity_logs(db, page, size, search, date_from, date_to)
