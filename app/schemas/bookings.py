@@ -48,7 +48,7 @@ class BookingRead(BaseModel):
     seat_class: SeatClassRead
     seat_number: Optional[str] = None
     status: str
-    total_price: int
+    total_price: float
     booked_at: datetime
     updated_at: datetime
     passengers: list[PassengerRead] = []
@@ -63,7 +63,7 @@ class BookingListRead(BaseModel):
     seat_class: SeatClassRead
     seat_number: Optional[str] = None
     status: str
-    total_price: int
+    total_price: float
     booked_at: datetime
 
     model_config = {"from_attributes": True}

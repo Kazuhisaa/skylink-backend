@@ -405,12 +405,12 @@ async def get_pricing_suggestion(db: AsyncSession, flight_id: str) -> dict:
             adjustment_pct = 0.0
             reason = "Occupancy is healthy — no adjustment needed"
 
-        suggested_price = round(row.price * (1 + adjustment_pct / 100))
-
+        current_price = float(row.price)
+        suggested_price = round(current_price * (1 + adjustment_pct / 100), 2)
         suggestions.append({
             "seat_class_id": row.seat_class_id,
             "seat_class_name": row.seat_class_name,
-            "current_price": row.price,
+            "current_price": current_price,
             "suggested_price": suggested_price,
             "adjustment_pct": adjustment_pct,
             "occupancy_rate": round(occupancy_rate * 100, 1),
