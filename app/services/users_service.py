@@ -36,21 +36,38 @@ async def get_all_users(
     db: AsyncSession,
     page: int = 1,
     size: int = 10
-) -> tuple[list[User], int]:
-    # Base query
-    query = select(User).order_by(User.created_at.desc())
-
+) -> tuple[list[dict], int]:
+    from app.models.bookings import Booking
     # Count total
     count_query = select(func.count()).select_from(User)
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
-
-    # Paginate
-    query = query.offset((page - 1) * size).limit(size)
+    # Query with bookings count
+    query = (
+        select(User, func.count(Booking.id).label("bookings_count"))
+        .outerjoin(Booking, Booking.user_id == User.id)
+        .group_by(User.id)
+        .order_by(User.created_at.desc())
+        .offset((page - 1) * size)
+        .limit(size)
+    )
     result = await db.execute(query)
-    items = result.scalars().all()
-
-    return items, total  # type: ignore
+    rows = result.all()
+    items = []
+    for user, bookings_count in rows:
+        user_dict = {
+            "id": str(user.id),
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "role_id": user.role_id,
+            "is_active": user.is_active,
+            "is_verified": user.is_verified,
+            "created_at": user.created_at,
+            "bookings_count": bookings_count,
+        }
+        items.append(user_dict)
+    return items, total  
 
 
 async def get_user(user_id: uuid.UUID, db: AsyncSession) -> User:
