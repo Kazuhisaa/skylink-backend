@@ -24,6 +24,11 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 async def get_kpi(request: Request, db: AsyncSession = Depends(get_db)):
     return await admin_service.get_kpi_summary(db)
 
+@router.get("/kpi/revenue-by-route", dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def get_revenue_by_route(request: Request, db: AsyncSession = Depends(get_db)):
+    return await admin_service.get_revenue_by_route(db)
+
 
 
 # ─── Reports ─────────────────────────────────────────────────────────────

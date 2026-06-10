@@ -532,6 +532,28 @@ async def get_activity_logs(
     )
 
 
+# ─── Revenue by Route ─────────────────────────────────────────────────────────
+async def get_revenue_by_route(db: AsyncSession) -> list:
+    from sqlalchemy.orm import selectinload
+    result = await db.execute(
+        select(Booking)
+        .options(
+            selectinload(Booking.flight).selectinload(Flight.origin_airport),
+            selectinload(Booking.flight).selectinload(Flight.destination_airport),
+        )
+        .where(Booking.status != "cancelled")
+    )
+    bookings = result.scalars().all()
+    from collections import defaultdict
+    route_map: dict = defaultdict(int)
+    for b in bookings:
+        if not b.flight or not b.flight.origin_airport or not b.flight.destination_airport:
+            continue
+        key = f"{b.flight.origin_airport.iata_code} → {b.flight.destination_airport.iata_code}"
+        route_map[key] += b.total_price
+    routes = sorted(route_map.items(), key=lambda x: x[1], reverse=True)[:5]
+    return [{"route": route, "revenue": revenue} for route, revenue in routes]
+
 # ─── KPI dashboard Services ────────────────────────────────────────────────────────────
 
 async def get_kpi_summary(db: AsyncSession) -> dict:
