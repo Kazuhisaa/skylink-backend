@@ -2,8 +2,8 @@ import uuid
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import delete
-from app.auth.models import User
-from app.auth.security import hash_password
+from app.models.auth import User
+from app.core.security import hash_password
 
 
 # ══════════════════════════════════════════════════════════════════════════════
