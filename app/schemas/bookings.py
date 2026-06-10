@@ -65,7 +65,7 @@ class BookingListRead(BaseModel):
     status: str
     total_price: float
     booked_at: datetime
-
+    passengers: list[PassengerRead] = []
     model_config = {"from_attributes": True}
 
 

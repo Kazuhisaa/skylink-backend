@@ -109,6 +109,7 @@ async def get_user_bookings(
             selectinload(Booking.flight).selectinload(Flight.destination_airport),
             selectinload(Booking.flight).selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
             selectinload(Booking.seat_class),
+            selectinload(Booking.passengers),
         )
         .order_by(Booking.booked_at.desc())
     )
@@ -235,10 +236,10 @@ async def get_all_bookings(
             selectinload(Booking.flight).selectinload(Flight.destination_airport),
             selectinload(Booking.flight).selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
             selectinload(Booking.seat_class),
+            selectinload(Booking.passengers),
         )
         .order_by(Booking.booked_at.desc())
     )
-
     # Count total
     count_query = select(func.count()).select_from(Booking)
     total_result = await db.execute(count_query)
