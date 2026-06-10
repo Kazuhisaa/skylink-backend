@@ -260,16 +260,14 @@ async def get_booking_report(
     bookings = result.scalars().all()
 
     total_bookings = len(bookings)
-    confirmed = [b for b in bookings if b.status == "confirmed"]  # type: ignore
-    cancelled = [b for b in bookings if b.status == "cancelled"]  # type: ignore
-
-    total_revenue = sum(b.total_price for b in bookings)  # type: ignore
-    confirmed_revenue = sum(b.total_price for b in confirmed)  # type: ignore
-
+    confirmed = [b for b in bookings if b.status != "cancelled"]  
+    cancelled = [b for b in bookings if b.status == "cancelled"] 
+    total_revenue = sum(b.total_price for b in bookings) 
+    confirmed_revenue = sum(b.total_price for b in confirmed)  
     # Build monthly breakdown
     from collections import defaultdict
     monthly: dict = defaultdict(lambda: {"revenue": 0, "bookings": 0})
-    for b in bookings:
+    for b in confirmed:
         key = b.booked_at.strftime("%Y-%m")
         monthly[key]["revenue"] += b.total_price
         monthly[key]["bookings"] += 1
@@ -394,7 +392,8 @@ async def get_route_report(
         dest = b.flight.destination_airport.iata_code
         key = f"{origin} → {dest}"
         route_map[key]["bookings"] += 1
-        route_map[key]["revenue"] += b.total_price
+        if b.status != "cancelled":
+            route_map[key]["revenue"] += b.total_price
 
     routes = [
         RouteBookingPoint(route=k, bookings=v["bookings"], revenue=v["revenue"])
