@@ -1,19 +1,26 @@
+import json
 import logging
 import uuid
-import json
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.orm import selectinload, aliased
 
-from app.models.flights import Flight, FlightSeatPricing, Airport, Aircraft, AircraftSeat
-from app.schemas.flights import FlightCreateWithPricing, FlightUpdate, FlightSeatPricingCreate, FlightListRead
+from fastapi import HTTPException
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased, selectinload
+
 from app.core.redis import redis_client
+from app.models.flights import Aircraft, AircraftSeat, Airport, Flight, FlightSeatPricing
+from app.schemas.flights import (
+    FlightCreateWithPricing,
+    FlightListRead,
+    FlightSeatPricingCreate,
+    FlightUpdate,
+)
 
 logger = logging.getLogger(__name__)
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
+
 
 async def _get_flight_with_relations(flight_id: uuid.UUID, db: AsyncSession) -> Flight:
     result = await db.execute(
@@ -55,6 +62,7 @@ async def _invalidate_flight_cache():
 
 # ─── Passenger Services ────────────────────────────────────────────────────────
 
+
 async def search_flights(
     db: AsyncSession,
     origin: str | None = None,
@@ -68,21 +76,18 @@ async def search_flights(
 
     OriginAirport = aliased(Airport, flat=True)
     DestinationAirport = aliased(Airport, flat=True)
-    
+
     cached_data = await redis_client.get(cache_key)
     if cached_data:
         data = json.loads(cached_data)
         logger.info(f"[CACHE] Cache hit for key: {cache_key}")
         return data["items"], data["total"]
 
-    query = (
-        select(Flight)
-        .options(
-            selectinload(Flight.origin_airport),
-            selectinload(Flight.destination_airport),
-            selectinload(Flight.aircraft).selectinload(Aircraft.seats),
-            selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
-        )
+    query = select(Flight).options(
+        selectinload(Flight.origin_airport),
+        selectinload(Flight.destination_airport),
+        selectinload(Flight.aircraft).selectinload(Aircraft.seats),
+        selectinload(Flight.seat_pricing).selectinload(FlightSeatPricing.seat_class),
     )
 
     if origin:
@@ -90,9 +95,9 @@ async def search_flights(
             OriginAirport.iata_code == origin.upper()
         )
     if destination:
-        query = query.join(DestinationAirport, Flight.destination_airport_id == DestinationAirport.id).where(
-            DestinationAirport.iata_code == destination.upper()
-        )
+        query = query.join(
+            DestinationAirport, Flight.destination_airport_id == DestinationAirport.id
+        ).where(DestinationAirport.iata_code == destination.upper())
 
     if date:
         query = query.where(Flight.departure_time >= date)
@@ -102,13 +107,13 @@ async def search_flights(
     # Count query — same fix
     count_query = select(func.count()).select_from(Flight)
     if origin:
-        count_query = count_query.join(OriginAirport, Flight.origin_airport_id == OriginAirport.id).where(
-            OriginAirport.iata_code == origin.upper()
-        )
+        count_query = count_query.join(
+            OriginAirport, Flight.origin_airport_id == OriginAirport.id
+        ).where(OriginAirport.iata_code == origin.upper())
     if destination:
-        count_query = count_query.join(DestinationAirport, Flight.destination_airport_id == DestinationAirport.id).where(
-            DestinationAirport.iata_code == destination.upper()
-        )
+        count_query = count_query.join(
+            DestinationAirport, Flight.destination_airport_id == DestinationAirport.id
+        ).where(DestinationAirport.iata_code == destination.upper())
     if date:
         count_query = count_query.where(Flight.departure_time >= date)
     if status:
@@ -121,8 +126,8 @@ async def search_flights(
     result = await db.execute(query)
     flights = result.scalars().all()
 
-    items = [FlightListRead.model_validate(f).model_dump(mode='json') for f in flights]
-    
+    items = [FlightListRead.model_validate(f).model_dump(mode="json") for f in flights]
+
     await redis_client.set(cache_key, json.dumps({"items": items, "total": total}), expire=300)
     logger.info(f"[CACHE] Cache miss for key: {cache_key}, saved to cache")
 
@@ -134,6 +139,7 @@ async def get_flight(flight_id: uuid.UUID, db: AsyncSession) -> Flight:
 
 
 # ─── Admin Services ────────────────────────────────────────────────────────────
+
 
 async def create_flight(
     body: FlightCreateWithPricing,
@@ -152,9 +158,9 @@ async def create_flight(
     )
     aircraft_seats = seats_result.scalars().all()
     if not aircraft_seats:
-         raise HTTPException(
+        raise HTTPException(
             status_code=400,
-            detail="The selected aircraft has no seat configuration. Please add seats to the aircraft first."
+            detail="The selected aircraft has no seat configuration. Please add seats to the aircraft first.",
         )
 
     # Count seats per class
@@ -164,14 +170,11 @@ async def create_flight(
 
     if body.origin_airport_id == body.destination_airport_id:
         raise HTTPException(
-            status_code=400,
-            detail="Origin and destination airports cannot be the same."
+            status_code=400, detail="Origin and destination airports cannot be the same."
         )
 
     # Check duplicate flight number
-    existing = await db.execute(
-        select(Flight).where(Flight.flight_number == body.flight_number)
-    )
+    existing = await db.execute(select(Flight).where(Flight.flight_number == body.flight_number))
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Flight number already exists.")
 
@@ -198,36 +201,37 @@ async def create_flight(
             invalid = provided_classes - config_classes
             raise HTTPException(
                 status_code=400,
-                detail=f"Seat classes {invalid} are not configured for this aircraft."
+                detail=f"Seat classes {invalid} are not configured for this aircraft.",
             )
 
         # Check if all aircraft config classes have a price
         if config_classes != provided_classes:
             missing = config_classes - provided_classes
             raise HTTPException(
-                status_code=400,
-                detail=f"Missing pricing for seat classes: {missing}."
+                status_code=400, detail=f"Missing pricing for seat classes: {missing}."
             )
 
         for pricing in seat_pricing:
             total_seats = class_counts[pricing.seat_class_id]
-            db.add(FlightSeatPricing(
-                flight_id=flight.id,
-                seat_class_id=pricing.seat_class_id,
-                total_seats=total_seats,
-                available_seats=total_seats,
-                price=pricing.price,
-            ))
+            db.add(
+                FlightSeatPricing(
+                    flight_id=flight.id,
+                    seat_class_id=pricing.seat_class_id,
+                    total_seats=total_seats,
+                    available_seats=total_seats,
+                    price=pricing.price,
+                )
+            )
     else:
         raise HTTPException(
             status_code=400,
-            detail="Seat pricing must be provided for all classes configured for this aircraft."
+            detail="Seat pricing must be provided for all classes configured for this aircraft.",
         )
 
     await db.commit()
     await _invalidate_flight_cache()
     logger.info(f"[FLIGHT] Created flight {flight.flight_number} by admin {created_by}")
-    return await _get_flight_with_relations(flight.id, db)          # type: ignore
+    return await _get_flight_with_relations(flight.id, db)  # type: ignore
 
 
 async def update_flight(
@@ -262,8 +266,7 @@ async def update_flight(
     destination = updates.get("destination_airport_id", flight.destination_airport_id)
     if origin == destination:
         raise HTTPException(
-            status_code=400,
-            detail="Origin and destination airports cannot be the same."
+            status_code=400, detail="Origin and destination airports cannot be the same."
         )
 
     for field, value in updates.items():
@@ -283,14 +286,10 @@ async def delete_flight(flight_id: uuid.UUID, db: AsyncSession) -> None:
 
     # Prevent deleting flights that have bookings
     from app.models.bookings import Booking
-    bookings_result = await db.execute(
-        select(Booking).where(Booking.flight_id == flight_id)
-    )
+
+    bookings_result = await db.execute(select(Booking).where(Booking.flight_id == flight_id))
     if bookings_result.scalar_one_or_none():
-        raise HTTPException(
-            status_code=409,
-            detail="Cannot delete flight with existing bookings."
-        )
+        raise HTTPException(status_code=409, detail="Cannot delete flight with existing bookings.")
 
     await db.delete(flight)
     await db.commit()

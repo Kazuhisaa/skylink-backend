@@ -1,10 +1,11 @@
-from fastapi import FastAPI
-from app.core.middleware import configure_middlewares
-from app.core.limiter import configure_limiter
-from app.core.redis import redis_client
-from app.core.settings import settings
 import logging
 
+from fastapi import FastAPI
+
+from app.core.limiter import configure_limiter
+from app.core.middleware import configure_middlewares
+from app.core.redis import redis_client
+from app.core.settings import settings
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,9 +15,11 @@ logging.basicConfig(
 
 app = FastAPI(**settings.app_config)
 
+
 @app.on_event("startup")
 async def startup_event():
     await redis_client.connect()
+
 
 @app.on_event("shutdown")
 async def shutdown_event():

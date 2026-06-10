@@ -1,9 +1,12 @@
-from pydantic import BaseModel
 from typing import Optional
+
+from pydantic import BaseModel
+
 
 class AircraftSeatConfig(BaseModel):
     seat_class_id: int
     quantity: int
+
 
 class AircraftCreate(BaseModel):
     model: str
@@ -21,6 +24,7 @@ class AircraftUpdate(BaseModel):
 class SeatClassCreate(BaseModel):
     name: str
 
+
 class SeatClassUpdate(BaseModel):
     name: Optional[str] = None
 
@@ -29,6 +33,7 @@ class SeatClassUpdate(BaseModel):
 class AircraftSeatCreate(BaseModel):
     seat_class_id: int
     seat_number: str
+
 
 class AircraftSeatRead(BaseModel):
     id: int
@@ -39,20 +44,14 @@ class AircraftSeatRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
-
 # --- Aircraft ---
 class AircraftRead(BaseModel):
     id: int
     model: str
     total_seats: int
     registration: str
-    seats: Optional[list["AircraftSeatRead"]] = None
-
+    seats: Optional[list[AircraftSeatRead]] = None
     model_config = {"from_attributes": True}
-
-
-from app.schemas.admin.aircraft import AircraftSeatRead
-AircraftRead.model_rebuild()
 
 
 # --- Seat Class ---

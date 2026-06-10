@@ -3,9 +3,9 @@ import uuid
 from datetime import date
 from typing import List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from fastapi import HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.promotions import Promotion
 from app.schemas.promotions import PromotionCreate, PromotionUpdate
@@ -41,7 +41,9 @@ async def create_promotion(promotion_data: PromotionCreate, db: AsyncSession) ->
     return new_promotion
 
 
-async def update_promotion(promotion_id: uuid.UUID, body: PromotionUpdate, db: AsyncSession) -> Promotion:
+async def update_promotion(
+    promotion_id: uuid.UUID, body: PromotionUpdate, db: AsyncSession
+) -> Promotion:
     result = await db.execute(select(Promotion).where(Promotion.id == promotion_id))
     promotion = result.scalar_one_or_none()
     if not promotion:

@@ -1,18 +1,18 @@
 import uuid
-import pytest_asyncio
-from unittest.mock import AsyncMock, patch
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, patch
+
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import delete
 
-from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing, AircraftSeat
 from app.models.bookings import Booking, Passenger
-
-from httpx import AsyncClient
+from app.models.flights import Aircraft, AircraftSeat, Airport, Flight, FlightSeatPricing, SeatClass
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def seed_flight_data(test_session_factory, seed_users):
@@ -44,7 +44,9 @@ async def seed_flight_data(test_session_factory, seed_users):
                 total_seats=180,
                 registration="RP-C1234",
             )
-            economy = SeatClass(name="Economy-FL")   # suffix avoids name collision with booking seeds
+            economy = SeatClass(
+                name="Economy-FL"
+            )  # suffix avoids name collision with booking seeds
             business = SeatClass(name="Business-FL")
 
             session.add_all([manila, cebu, davao, aircraft, economy, business])
@@ -52,17 +54,21 @@ async def seed_flight_data(test_session_factory, seed_users):
 
             seats = []
             for i in range(1, 151):
-                seats.append(AircraftSeat(
-                    aircraft_id=aircraft.id,
-                    seat_class_id=economy.id,
-                    seat_number=f"{i}E",
-                ))
+                seats.append(
+                    AircraftSeat(
+                        aircraft_id=aircraft.id,
+                        seat_class_id=economy.id,
+                        seat_number=f"{i}E",
+                    )
+                )
             for i in range(1, 31):
-                seats.append(AircraftSeat(
-                    aircraft_id=aircraft.id,
-                    seat_class_id=business.id,
-                    seat_number=f"{i}B",
-                ))
+                seats.append(
+                    AircraftSeat(
+                        aircraft_id=aircraft.id,
+                        seat_class_id=business.id,
+                        seat_number=f"{i}B",
+                    )
+                )
             session.add_all(seats)
 
     yield {
@@ -78,7 +84,6 @@ async def seed_flight_data(test_session_factory, seed_users):
 
     async with test_session_factory() as session:
         async with session.begin():
-
             # 1. deepest children first
             await session.execute(delete(AircraftSeat))
 
@@ -114,40 +119,40 @@ async def seed_one_flight(test_session_factory, seed_flight_data):
         )
         session.add(flight)
         await session.flush()
-        session.add_all([
-            FlightSeatPricing(
-                flight_id=flight_id,
-                seat_class_id=seed_flight_data["economy_id"],
-                total_seats=150,
-                available_seats=150,
-                price=480000,
-            ),
-            FlightSeatPricing(
-                flight_id=flight_id,
-                seat_class_id=seed_flight_data["business_id"],
-                total_seats=30,
-                available_seats=30,
-                price=1200000,
-            ),
-        ])
+        session.add_all(
+            [
+                FlightSeatPricing(
+                    flight_id=flight_id,
+                    seat_class_id=seed_flight_data["economy_id"],
+                    total_seats=150,
+                    available_seats=150,
+                    price=480000,
+                ),
+                FlightSeatPricing(
+                    flight_id=flight_id,
+                    seat_class_id=seed_flight_data["business_id"],
+                    total_seats=30,
+                    available_seats=30,
+                    price=1200000,
+                ),
+            ]
+        )
         await session.commit()
 
     yield flight_id
 
     async with test_session_factory() as session:
-        async with session.begin(): 
+        async with session.begin():
             await session.execute(
                 delete(FlightSeatPricing).where(FlightSeatPricing.flight_id == flight_id)
             )
-            await session.execute(
-                delete(Flight).where(Flight.id == flight_id)
-            )
-
+            await session.execute(delete(Flight).where(Flight.id == flight_id))
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def mock_redis():
     """Patch redis so tests never hit a real Redis instance."""
@@ -192,8 +197,8 @@ def valid_flight_payload(
 # GET /flights  — search & pagination
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestSearchFlights:
 
+class TestSearchFlights:
     async def test_search_returns_paginated_response(
         self, unauthenticated_client: AsyncClient, seed_one_flight
     ):
@@ -211,9 +216,7 @@ class TestSearchFlights:
         self, unauthenticated_client: AsyncClient, seed_one_flight
     ):
         with mock_redis():
-            resp = await unauthenticated_client.get(
-                f"/api/v1/flights?status=scheduled&size=100"
-            )
+            resp = await unauthenticated_client.get("/api/v1/flights?status=scheduled&size=100")
         assert resp.status_code == 200
         ids = [item["id"] for item in resp.json()["items"]]
         assert str(seed_one_flight) in ids
@@ -239,7 +242,6 @@ class TestSearchFlights:
         assert len(items) >= 1
         for item in items:
             assert item["destination_airport"]["iata_code"] == "CEB"
-
 
     async def test_search_filter_by_status(
         self, unauthenticated_client: AsyncClient, seed_one_flight
@@ -276,15 +278,11 @@ class TestSearchFlights:
         assert resp.status_code == 200
         assert resp.json()["items"] == []
 
-    async def test_search_invalid_size_rejected(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_search_invalid_size_rejected(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get("/api/v1/flights?size=0")
         assert resp.status_code == 422
 
-    async def test_search_invalid_page_rejected(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_search_invalid_page_rejected(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get("/api/v1/flights?page=0")
         assert resp.status_code == 422
 
@@ -293,10 +291,13 @@ class TestSearchFlights:
     ):
         """When Redis returns cached data, DB should not be queried."""
         import json
-        cached = json.dumps({
-            "items": [],
-            "total": 0,
-        })
+
+        cached = json.dumps(
+            {
+                "items": [],
+                "total": 0,
+            }
+        )
         with patch(
             "app.services.flights_service.redis_client",
             get=AsyncMock(return_value=cached),
@@ -312,11 +313,9 @@ class TestSearchFlights:
 # GET /flights/{id}
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestGetFlight:
 
-    async def test_get_existing_flight(
-        self, unauthenticated_client: AsyncClient, seed_one_flight
-    ):
+class TestGetFlight:
+    async def test_get_existing_flight(self, unauthenticated_client: AsyncClient, seed_one_flight):
         resp = await unauthenticated_client.get(f"/api/v1/flights/{seed_one_flight}")
         assert resp.status_code == 200
         data = resp.json()
@@ -328,17 +327,13 @@ class TestGetFlight:
         assert "seat_pricing" in data
         assert len(data["seat_pricing"]) == 2
 
-    async def test_get_nonexistent_flight_returns_404(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_get_nonexistent_flight_returns_404(self, unauthenticated_client: AsyncClient):
         fake_id = uuid.uuid4()
         resp = await unauthenticated_client.get(f"/api/v1/flights/{fake_id}")
         assert resp.status_code == 404
         assert resp.json()["detail"] == "Flight not found."
 
-    async def test_get_invalid_uuid_returns_422(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_get_invalid_uuid_returns_422(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get("/api/v1/flights/not-a-uuid")
         assert resp.status_code == 422
 
@@ -347,11 +342,9 @@ class TestGetFlight:
 # POST /flights  — admin create
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestCreateFlight:
 
-    async def test_admin_can_create_flight(
-        self, admin_client: AsyncClient, seed_flight_data
-    ):
+class TestCreateFlight:
+    async def test_admin_can_create_flight(self, admin_client: AsyncClient, seed_flight_data):
         payload = valid_flight_payload(
             seed_flight_data["manila_id"],
             seed_flight_data["cebu_id"],
@@ -431,9 +424,7 @@ class TestCreateFlight:
         assert resp.status_code == 400
         assert "same" in resp.json()["detail"].lower()
 
-    async def test_invalid_aircraft_returns_404(
-        self, admin_client: AsyncClient, seed_flight_data
-    ):
+    async def test_invalid_aircraft_returns_404(self, admin_client: AsyncClient, seed_flight_data):
         payload = valid_flight_payload(
             seed_flight_data["manila_id"],
             seed_flight_data["cebu_id"],
@@ -447,9 +438,7 @@ class TestCreateFlight:
         assert resp.status_code == 404
         assert resp.json()["detail"] == "Aircraft not found."
 
-    async def test_invalid_airport_returns_404(
-        self, admin_client: AsyncClient, seed_flight_data
-    ):
+    async def test_invalid_airport_returns_404(self, admin_client: AsyncClient, seed_flight_data):
         payload = valid_flight_payload(
             9999,  # nonexistent airport
             seed_flight_data["cebu_id"],
@@ -481,9 +470,7 @@ class TestCreateFlight:
             resp = await admin_client.post("/api/v1/flights", json=payload)
         assert resp.status_code == 422
 
-    async def test_invalid_status_rejected(
-        self, admin_client: AsyncClient, seed_flight_data
-    ):
+    async def test_invalid_status_rejected(self, admin_client: AsyncClient, seed_flight_data):
         payload = valid_flight_payload(
             seed_flight_data["manila_id"],
             seed_flight_data["cebu_id"],
@@ -511,10 +498,10 @@ class TestCreateFlight:
         payload["seat_pricing"][0]["seat_class_id"] = 9999  # nonexistent
         with mock_redis():
             resp = await admin_client.post("/api/v1/flights", json=payload)
-        assert resp.status_code == 400                          # backend catches via class_counts, not DB lookup
+        assert resp.status_code == 400  # backend catches via class_counts, not DB lookup
         assert "not configured" in resp.json()["detail"].lower()
 
-    async def test_create_flight_without_pricing_returns_400(  
+    async def test_create_flight_without_pricing_returns_400(
         self, admin_client: AsyncClient, seed_flight_data
     ):
         payload = valid_flight_payload(
@@ -530,9 +517,7 @@ class TestCreateFlight:
             resp = await admin_client.post("/api/v1/flights", json=payload)
         assert resp.status_code == 400
 
-    async def test_missing_required_fields_rejected(
-        self, admin_client: AsyncClient
-    ):
+    async def test_missing_required_fields_rejected(self, admin_client: AsyncClient):
         resp = await admin_client.post("/api/v1/flights", json={})
         assert resp.status_code == 422
 
@@ -541,11 +526,9 @@ class TestCreateFlight:
 # PUT /flights/{id}  — admin update
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestUpdateFlight:
 
-    async def test_admin_can_update_status(
-        self, admin_client: AsyncClient, seed_one_flight
-    ):
+class TestUpdateFlight:
+    async def test_admin_can_update_status(self, admin_client: AsyncClient, seed_one_flight):
         with mock_redis():
             resp = await admin_client.put(
                 f"/api/v1/flights/{seed_one_flight}",
@@ -554,9 +537,7 @@ class TestUpdateFlight:
         assert resp.status_code == 200
         assert resp.json()["status"] == "cancelled"
 
-    async def test_admin_can_update_flight_number(
-        self, admin_client: AsyncClient, seed_one_flight
-    ):
+    async def test_admin_can_update_flight_number(self, admin_client: AsyncClient, seed_one_flight):
         with mock_redis():
             resp = await admin_client.put(
                 f"/api/v1/flights/{seed_one_flight}",
@@ -570,17 +551,19 @@ class TestUpdateFlight:
     ):
         second_id = uuid.uuid4()
         async with test_session_factory() as session:
-            session.add(Flight(
-                id=second_id,
-                flight_number="SK-CONF",  # 7 chars, fits VARCHAR(10)
-                aircraft_id=seed_flight_data["aircraft_id"],
-                origin_airport_id=seed_flight_data["manila_id"],
-                destination_airport_id=seed_flight_data["cebu_id"],
-                departure_time=datetime(2025, 12, 5, 8, 0, tzinfo=timezone.utc),
-                arrival_time=datetime(2025, 12, 5, 10, 0, tzinfo=timezone.utc),
-                status="scheduled",
-                created_by=seed_flight_data["admin"].id,
-            ))
+            session.add(
+                Flight(
+                    id=second_id,
+                    flight_number="SK-CONF",  # 7 chars, fits VARCHAR(10)
+                    aircraft_id=seed_flight_data["aircraft_id"],
+                    origin_airport_id=seed_flight_data["manila_id"],
+                    destination_airport_id=seed_flight_data["cebu_id"],
+                    departure_time=datetime(2025, 12, 5, 8, 0, tzinfo=timezone.utc),
+                    arrival_time=datetime(2025, 12, 5, 10, 0, tzinfo=timezone.utc),
+                    status="scheduled",
+                    created_by=seed_flight_data["admin"].id,
+                )
+            )
             await session.commit()
 
         with mock_redis():
@@ -607,9 +590,7 @@ class TestUpdateFlight:
             )
         assert resp.status_code == 400
 
-    async def test_update_nonexistent_flight_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_update_nonexistent_flight_returns_404(self, admin_client: AsyncClient):
         with mock_redis():
             resp = await admin_client.put(
                 f"/api/v1/flights/{uuid.uuid4()}",
@@ -642,8 +623,8 @@ class TestUpdateFlight:
 # DELETE /flights/{id}  — admin delete
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestDeleteFlight:
 
+class TestDeleteFlight:
     async def test_admin_can_delete_flight(
         self, admin_client: AsyncClient, seed_flight_data, test_session_factory
     ):
@@ -651,17 +632,19 @@ class TestDeleteFlight:
         flight_id = uuid.uuid4()
         async with test_session_factory() as session:
             async with session.begin():
-                session.add(Flight(
-                    id=flight_id,
-                    flight_number="SK-DEL",
-                    aircraft_id=seed_flight_data["aircraft_id"],
-                    origin_airport_id=seed_flight_data["manila_id"],
-                    destination_airport_id=seed_flight_data["cebu_id"],
-                    departure_time=datetime(2025, 12, 20, 8, 0, tzinfo=timezone.utc),
-                    arrival_time=datetime(2025, 12, 20, 10, 0, tzinfo=timezone.utc),
-                    status="scheduled",
-                    created_by=seed_flight_data["admin"].id,
-                ))
+                session.add(
+                    Flight(
+                        id=flight_id,
+                        flight_number="SK-DEL",
+                        aircraft_id=seed_flight_data["aircraft_id"],
+                        origin_airport_id=seed_flight_data["manila_id"],
+                        destination_airport_id=seed_flight_data["cebu_id"],
+                        departure_time=datetime(2025, 12, 20, 8, 0, tzinfo=timezone.utc),
+                        arrival_time=datetime(2025, 12, 20, 10, 0, tzinfo=timezone.utc),
+                        status="scheduled",
+                        created_by=seed_flight_data["admin"].id,
+                    )
+                )
 
         with mock_redis():
             resp = await admin_client.delete(f"/api/v1/flights/{flight_id}")
@@ -671,9 +654,7 @@ class TestDeleteFlight:
         resp2 = await admin_client.get(f"/api/v1/flights/{flight_id}")
         assert resp2.status_code == 404
 
-    async def test_delete_nonexistent_flight_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_nonexistent_flight_returns_404(self, admin_client: AsyncClient):
         with mock_redis():
             resp = await admin_client.delete(f"/api/v1/flights/{uuid.uuid4()}")
         assert resp.status_code == 404

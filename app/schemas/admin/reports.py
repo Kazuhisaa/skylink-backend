@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
+from pydantic import BaseModel
 
 
 class BookingReportFilter(BaseModel):
@@ -9,16 +10,17 @@ class BookingReportFilter(BaseModel):
 
 
 class MonthlyRevenuePoint(BaseModel):
-    month: str       
+    month: str
     year: int
     revenue: float
     bookings: int
 
-    
+
 class RouteBookingPoint(BaseModel):
-    route: str       
+    route: str
     bookings: int
     revenue: float
+
 
 class RouteReportRead(BaseModel):
     routes: list[RouteBookingPoint] = []
@@ -43,7 +45,8 @@ class MonthlyCancellationPoint(BaseModel):
     year: int
     total_bookings: int
     cancelled_bookings: int
-    cancellation_rate: float 
+    cancellation_rate: float
+
 
 class CancellationReportRead(BaseModel):
     monthly_cancellations: list[MonthlyCancellationPoint] = []
@@ -51,12 +54,12 @@ class CancellationReportRead(BaseModel):
     date_to: Optional[datetime] = None
 
 
-
 # --- User Growth Report ---
 class MonthlyUserGrowthPoint(BaseModel):
     month: str
     year: int
     new_users: int
+
 
 class UserGrowthReportRead(BaseModel):
     monthly_growth: list[MonthlyUserGrowthPoint] = []
@@ -72,6 +75,7 @@ class ActivityLogRead(BaseModel):
     attempted_at: datetime
 
     model_config = {"from_attributes": True}
+
 
 class ActivityLogListRead(BaseModel):
     logs: list[ActivityLogRead] = []

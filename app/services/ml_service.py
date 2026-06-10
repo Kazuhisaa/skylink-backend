@@ -1,13 +1,15 @@
 import logging
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+
 import numpy as np
 from sklearn.linear_model import LinearRegression
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
 # ─── Revenue Forecast ─────────────────────────────────────────────────────────
+
 
 async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
     query = text("""
@@ -25,7 +27,12 @@ async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
 
     if len(rows) < 2:
         logger.warning("[ML] Not enough data for revenue forecast")
-        return {"historical": [], "forecast": [], "r2_score": None, "message": "Not enough data to forecast"}
+        return {
+            "historical": [],
+            "forecast": [],
+            "r2_score": None,
+            "message": "Not enough data to forecast",
+        }
 
     months_numeric = np.array(range(len(rows))).reshape(-1, 1)
     revenues = np.array([float(r.revenue) for r in rows])
@@ -55,11 +62,13 @@ async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
         month = (last_dt.month - 1 + i) % 12 + 1
         year = last_dt.year + (last_dt.month - 1 + i) // 12
         predicted = float(model.predict([[last_index + i]])[0])
-        forecast.append({
-            "month": datetime(year, month, 1).strftime("%b"),
-            "year": year,
-            "revenue": max(0.0, predicted),
-        })
+        forecast.append(
+            {
+                "month": datetime(year, month, 1).strftime("%b"),
+                "year": year,
+                "revenue": max(0.0, predicted),
+            }
+        )
 
     r2 = float(model.score(months_numeric, revenues_clipped))
 
@@ -70,7 +79,9 @@ async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
     else:
         confidence = "high"
 
-    logger.info(f"[ML] Revenue forecast generated — r2={r2:.3f} confidence={confidence} months_ahead={months_ahead}")
+    logger.info(
+        f"[ML] Revenue forecast generated — r2={r2:.3f} confidence={confidence} months_ahead={months_ahead}"
+    )
 
     return {
         "historical": historical,
@@ -80,8 +91,8 @@ async def get_revenue_forecast(db: AsyncSession, months_ahead: int = 6) -> dict:
     }
 
 
-
 # ─── Demand Forecast by Route ─────────────────────────────────────────────────
+
 
 async def get_demand_forecast(db: AsyncSession) -> dict:
     query = text("""
@@ -106,6 +117,7 @@ async def get_demand_forecast(db: AsyncSession) -> dict:
         return {"routes": [], "message": "Not enough data"}
 
     from collections import defaultdict
+
     route_data: dict = defaultdict(list)
     for r in rows:
         route_key = f"{r.origin} → {r.destination}"
@@ -136,13 +148,15 @@ async def get_demand_forecast(db: AsyncSession) -> dict:
         else:
             confidence = "high"
 
-        routes.append({
-            "route": route,
-            "predicted_bookings_next_30_days": round(predicted),
-            "avg_monthly_bookings": round(float(np.mean(y)), 1),
-            "r2_score": round(r2, 4),
-            "confidence": confidence,
-        })
+        routes.append(
+            {
+                "route": route,
+                "predicted_bookings_next_30_days": round(predicted),
+                "avg_monthly_bookings": round(float(np.mean(y)), 1),
+                "r2_score": round(r2, 4),
+                "confidence": confidence,
+            }
+        )
 
     routes.sort(key=lambda x: x["predicted_bookings_next_30_days"], reverse=True)
     logger.info(f"[ML] Demand forecast generated — routes={len(routes)}")
@@ -150,8 +164,8 @@ async def get_demand_forecast(db: AsyncSession) -> dict:
     return {"routes": routes}
 
 
-
 # ─── Cancellation Risk Scoring ────────────────────────────────────────────────
+
 
 async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
     # fetch the target booking
@@ -177,6 +191,7 @@ async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
 
     if not booking:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Booking not found.")
 
     # fetch historical bookings for feature training
@@ -236,11 +251,15 @@ async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
 
     # score the target booking
     lead_time = max(0, (booking.departure_time - booking.booked_at).days)
-    target_features = np.array([[
-        booking.seat_class_id,
-        float(booking.total_price),
-        lead_time,
-    ]])
+    target_features = np.array(
+        [
+            [
+                booking.seat_class_id,
+                float(booking.total_price),
+                lead_time,
+            ]
+        ]
+    )
     target_scaled = scaler.transform(target_features)
     risk_score = float(model.predict_proba(target_scaled)[0][1]) * 100
 
@@ -251,7 +270,9 @@ async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
     else:
         risk_level = "low"
 
-    logger.info(f"[ML] Cancellation risk scored — booking={booking_id} score={risk_score:.1f}% level={risk_level}")
+    logger.info(
+        f"[ML] Cancellation risk scored — booking={booking_id} score={risk_score:.1f}% level={risk_level}"
+    )
 
     return {
         "booking_id": booking_id,
@@ -263,8 +284,8 @@ async def get_cancellation_risk(db: AsyncSession, booking_id: str) -> dict:
     }
 
 
-
 # ─── Anomaly Detection on Revenue ─────────────────────────────────────────────
+
 
 async def get_revenue_anomalies(db: AsyncSession) -> dict:
     query = text("""
@@ -315,7 +336,9 @@ async def get_revenue_anomalies(db: AsyncSession) -> dict:
         if severity:
             anomalies.append(point)
 
-    logger.info(f"[ML] Anomaly detection complete — total={len(monthly)} anomalies={len(anomalies)}")
+    logger.info(
+        f"[ML] Anomaly detection complete — total={len(monthly)} anomalies={len(anomalies)}"
+    )
 
     return {
         "monthly": monthly,
@@ -325,8 +348,8 @@ async def get_revenue_anomalies(db: AsyncSession) -> dict:
     }
 
 
-
 # ─── Seat Pricing Optimization ────────────────────────────────────────────────
+
 
 async def get_pricing_suggestion(db: AsyncSession, flight_id: str) -> dict:
 
@@ -352,6 +375,7 @@ async def get_pricing_suggestion(db: AsyncSession, flight_id: str) -> dict:
 
     if not rows:
         from fastapi import HTTPException
+
         raise HTTPException(status_code=404, detail="Flight not found.")
 
     # fetch historical booking velocity per seat class
@@ -370,18 +394,26 @@ async def get_pricing_suggestion(db: AsyncSession, flight_id: str) -> dict:
     velocity_result = await db.execute(velocity_query)
     velocity_rows = velocity_result.fetchall()
     from collections import defaultdict
+
     velocity_map: dict = defaultdict(list)
     for v in velocity_rows:
         velocity_map[v.seat_class_id].append(float(v.bookings))
 
     from datetime import datetime, timezone
+
     now = datetime.now(timezone.utc)
 
     suggestions = []
     for row in rows:
         days_until_departure = max(0, (row.departure_time - now).days)
-        occupancy_rate = (row.total_seats - row.available_seats) / row.total_seats if row.total_seats > 0 else 0
-        avg_velocity = float(np.mean(velocity_map[row.seat_class_id])) if velocity_map[row.seat_class_id] else 0
+        occupancy_rate = (
+            (row.total_seats - row.available_seats) / row.total_seats if row.total_seats > 0 else 0
+        )
+        avg_velocity = (
+            float(np.mean(velocity_map[row.seat_class_id]))
+            if velocity_map[row.seat_class_id]
+            else 0
+        )
 
         # pricing logic:
         # high occupancy + few days left = increase price
@@ -405,20 +437,24 @@ async def get_pricing_suggestion(db: AsyncSession, flight_id: str) -> dict:
 
         current_price = float(row.price)
         suggested_price = round(current_price * (1 + adjustment_pct / 100), 2)
-        suggestions.append({
-            "seat_class_id": row.seat_class_id,
-            "seat_class_name": row.seat_class_name,
-            "current_price": current_price,
-            "suggested_price": suggested_price,
-            "adjustment_pct": adjustment_pct,
-            "occupancy_rate": round(occupancy_rate * 100, 1),
-            "available_seats": row.available_seats,
-            "total_seats": row.total_seats,
-            "days_until_departure": days_until_departure,
-            "avg_monthly_booking_velocity": round(avg_velocity, 1),
-            "reason": reason,
-        })
-    logger.info(f"[ML] Pricing suggestion generated — flight={flight_id} classes={len(suggestions)}")
+        suggestions.append(
+            {
+                "seat_class_id": row.seat_class_id,
+                "seat_class_name": row.seat_class_name,
+                "current_price": current_price,
+                "suggested_price": suggested_price,
+                "adjustment_pct": adjustment_pct,
+                "occupancy_rate": round(occupancy_rate * 100, 1),
+                "available_seats": row.available_seats,
+                "total_seats": row.total_seats,
+                "days_until_departure": days_until_departure,
+                "avg_monthly_booking_velocity": round(avg_velocity, 1),
+                "reason": reason,
+            }
+        )
+    logger.info(
+        f"[ML] Pricing suggestion generated — flight={flight_id} classes={len(suggestions)}"
+    )
     return {
         "flight_id": flight_id,
         "suggestions": suggestions,

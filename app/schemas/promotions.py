@@ -1,8 +1,9 @@
-from pydantic import BaseModel
-from datetime import date, datetime
-from typing import Optional
-from decimal import Decimal
 import uuid
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import BaseModel
 
 
 class PromotionBase(BaseModel):

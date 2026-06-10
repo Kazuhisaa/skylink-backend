@@ -54,6 +54,7 @@ python-multipart==0.0.26
 redis==7.4.0
 requests==2.34.2
 rsa==4.9.1
+ruff==0.15.16
 scikit-learn==1.9.0
 scipy==1.17.1
 six==1.17.0

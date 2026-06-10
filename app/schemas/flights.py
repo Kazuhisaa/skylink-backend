@@ -1,8 +1,10 @@
-from pydantic import BaseModel, field_validator
+import uuid
 from datetime import datetime
 from typing import Optional
-import uuid
-from app.schemas.admin.aircraft import SeatClassRead, AircraftRead
+
+from pydantic import BaseModel, field_validator
+
+from app.schemas.admin.aircraft import AircraftRead, SeatClassRead
 from app.schemas.admin.airports import AirportRead
 
 
@@ -85,6 +87,7 @@ class FlightListRead(BaseModel):
 class FlightSeatPricingCreate(BaseModel):
     seat_class_id: int
     price: float
+
 
 class FlightCreateWithPricing(FlightCreate):
     seat_pricing: Optional[list[FlightSeatPricingCreate]] = None

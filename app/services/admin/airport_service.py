@@ -1,18 +1,17 @@
 import logging
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from fastapi import HTTPException
 
-from app.schemas.admin.airports import AirportCreate, AirportUpdate
+from fastapi import HTTPException
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.flights import Airport
+from app.schemas.admin.airports import AirportCreate, AirportUpdate
 
 logger = logging.getLogger(__name__)
 
 
-
-
 # ─── Airport ───────────────────────────────────────────────────────────────────
+
 
 async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
     existing = await db.execute(select(Airport).where(Airport.iata_code == body.iata_code.upper()))
@@ -24,10 +23,10 @@ async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
         city=body.city,
         country=body.country,
         timezone=body.timezone,
-        about=body.about,             
-        highlights=body.highlights,   
-        best_time=body.best_time,      
-        image_url=body.image_url,      
+        about=body.about,
+        highlights=body.highlights,
+        best_time=body.best_time,
+        image_url=body.image_url,
     )
     db.add(airport)
     await db.commit()
@@ -35,18 +34,19 @@ async def create_airport(body: AirportCreate, db: AsyncSession) -> Airport:
     logger.info(f"[ADMIN] Created airport {airport.iata_code}")
     return airport
 
+
 async def get_airports(db: AsyncSession) -> list[Airport]:
     result = await db.execute(select(Airport).order_by(Airport.iata_code))
     return list(result.scalars().all())
 
+
 async def get_airport_by_iata(iata_code: str, db: AsyncSession) -> Airport:
-    result = await db.execute(
-        select(Airport).where(Airport.iata_code == iata_code.upper())
-    )
+    result = await db.execute(select(Airport).where(Airport.iata_code == iata_code.upper()))
     airport = result.scalar_one_or_none()
     if not airport:
         raise HTTPException(status_code=404, detail="Airport not found.")
     return airport
+
 
 async def update_airport(airport_id: int, body: AirportUpdate, db: AsyncSession) -> Airport:
     result = await db.execute(select(Airport).where(Airport.id == airport_id))
@@ -60,16 +60,17 @@ async def update_airport(airport_id: int, body: AirportUpdate, db: AsyncSession)
     logger.info(f"[ADMIN] Updated airport {airport_id}")
     return airport
 
+
 async def delete_airport(airport_id: int, db: AsyncSession) -> None:
     result = await db.execute(select(Airport).where(Airport.id == airport_id))
     airport = result.scalar_one_or_none()
     if not airport:
         raise HTTPException(status_code=404, detail="Airport not found.")
     from app.models.flights import Flight
+
     in_use = await db.execute(
         select(Flight).where(
-            (Flight.origin_airport_id == airport_id) |
-            (Flight.destination_airport_id == airport_id)
+            (Flight.origin_airport_id == airport_id) | (Flight.destination_airport_id == airport_id)
         )
     )
     if in_use.scalars().first():

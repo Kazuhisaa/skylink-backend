@@ -1,10 +1,12 @@
 import logging
 import uuid
+
 from fastapi import HTTPException
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+
 from app.models.auth import User
-from app.schemas.users import UserUpdate, UserStatusUpdate
+from app.schemas.users import UserStatusUpdate, UserUpdate
 
 logger = logging.getLogger(__name__)
 
@@ -32,12 +34,9 @@ async def update_me(user_id: uuid.UUID, body: UserUpdate, db: AsyncSession) -> U
     return user
 
 
-async def get_all_users(
-    db: AsyncSession,
-    page: int = 1,
-    size: int = 10
-) -> tuple[list[dict], int]:
+async def get_all_users(db: AsyncSession, page: int = 1, size: int = 10) -> tuple[list[dict], int]:
     from app.models.bookings import Booking
+
     # Count total
     count_query = select(func.count()).select_from(User)
     total_result = await db.execute(count_query)
@@ -67,7 +66,7 @@ async def get_all_users(
             "bookings_count": bookings_count,
         }
         items.append(user_dict)
-    return items, total  
+    return items, total
 
 
 async def get_user(user_id: uuid.UUID, db: AsyncSession) -> User:
@@ -78,9 +77,7 @@ async def get_user(user_id: uuid.UUID, db: AsyncSession) -> User:
     return user
 
 
-async def update_user_status(
-    user_id: uuid.UUID, body: UserStatusUpdate, db: AsyncSession
-) -> User:
+async def update_user_status(user_id: uuid.UUID, body: UserStatusUpdate, db: AsyncSession) -> User:
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:

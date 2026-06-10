@@ -1,19 +1,26 @@
 import logging
 from datetime import datetime
 from typing import Optional
+
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
+
+from app.models.auth import LoginAttempt, User
 from app.models.bookings import Booking
-
-from app.schemas.admin.reports import RouteReportRead, RouteBookingPoint, CancellationReportRead, MonthlyCancellationPoint, UserGrowthReportRead, MonthlyUserGrowthPoint, ActivityLogListRead, ActivityLogRead
-
 from app.models.flights import Flight
-from app.models.auth import User, LoginAttempt
-
+from app.schemas.admin.reports import (
+    ActivityLogListRead,
+    ActivityLogRead,
+    CancellationReportRead,
+    MonthlyCancellationPoint,
+    MonthlyUserGrowthPoint,
+    RouteBookingPoint,
+    RouteReportRead,
+    UserGrowthReportRead,
+)
 
 logger = logging.getLogger(__name__)
-
 
 
 async def get_route_report(
@@ -22,12 +29,9 @@ async def get_route_report(
     date_to: Optional[datetime] = None,
 ) -> "RouteReportRead":
 
-    query = (
-        select(Booking)
-        .options(
-            selectinload(Booking.flight).selectinload(Flight.origin_airport),
-            selectinload(Booking.flight).selectinload(Flight.destination_airport),
-        )
+    query = select(Booking).options(
+        selectinload(Booking.flight).selectinload(Flight.origin_airport),
+        selectinload(Booking.flight).selectinload(Flight.destination_airport),
     )
     if date_from:
         query = query.where(Booking.booked_at >= date_from)
@@ -38,6 +42,7 @@ async def get_route_report(
     bookings = result.scalars().all()
 
     from collections import defaultdict
+
     route_map: dict = defaultdict(lambda: {"bookings": 0, "revenue": 0})
     for b in bookings:
         origin = b.flight.origin_airport.iata_code
@@ -57,12 +62,12 @@ async def get_route_report(
 
 # ─── Cancellation Report ─────────────────────────────────────────────────────────────
 
+
 async def get_cancellation_report(
     db: AsyncSession,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
 ) -> "CancellationReportRead":
-
 
     query = select(Booking)
     if date_from:
@@ -74,6 +79,7 @@ async def get_cancellation_report(
     bookings = result.scalars().all()
 
     from collections import defaultdict
+
     monthly: dict = defaultdict(lambda: {"total": 0, "cancelled": 0})
     for b in bookings:
         key = b.booked_at.strftime("%Y-%m")
@@ -87,7 +93,9 @@ async def get_cancellation_report(
             year=int(k.split("-")[0]),
             total_bookings=v["total"],
             cancelled_bookings=v["cancelled"],
-            cancellation_rate=round((v["cancelled"] / v["total"]) * 100, 1) if v["total"] > 0 else 0.0,
+            cancellation_rate=round((v["cancelled"] / v["total"]) * 100, 1)
+            if v["total"] > 0
+            else 0.0,
         )
         for k, v in sorted(monthly.items())
     ]
@@ -101,6 +109,7 @@ async def get_cancellation_report(
 
 
 # ─── User Growth Report ─────────────────────────────────────────────────────────────
+
 
 async def get_user_growth_report(
     db: AsyncSession,
@@ -118,6 +127,7 @@ async def get_user_growth_report(
     users = result.scalars().all()
 
     from collections import defaultdict
+
     monthly: dict = defaultdict(int)
     for u in users:
         key = u.created_at.strftime("%Y-%m")
@@ -141,6 +151,7 @@ async def get_user_growth_report(
 
 
 # ─── Activity Log ─────────────────────────────────────────────────────────────
+
 
 async def get_activity_logs(
     db: AsyncSession,
@@ -181,4 +192,3 @@ async def get_activity_logs(
         ],
         total=total,
     )
-

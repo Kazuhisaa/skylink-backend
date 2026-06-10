@@ -1,13 +1,16 @@
 import uuid
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest_asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
 from httpx import AsyncClient
 from sqlalchemy import delete, select
+
 from app.models.auth import User
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 def mock_google_userinfo(
     google_id: str = "google-id-123",
@@ -56,6 +59,7 @@ def mock_google_userinfo_failure():
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def seed_google_users(test_session_factory, seed_users):
     """
@@ -98,11 +102,13 @@ async def seed_google_users(test_session_factory, seed_users):
     )
     async with test_session_factory() as session:
         async with session.begin():
-            session.add_all([
-                existing_google_user,
-                email_only_user,
-                inactive_google_user,
-            ])
+            session.add_all(
+                [
+                    existing_google_user,
+                    email_only_user,
+                    inactive_google_user,
+                ]
+            )
     yield {
         "existing": existing_google_user,
         "email_only": email_only_user,
@@ -112,13 +118,15 @@ async def seed_google_users(test_session_factory, seed_users):
         async with session.begin():
             await session.execute(
                 delete(User).where(
-                    User.email.in_([
-                        "existing.google@test.com",
-                        "emailonly.google@test.com",
-                        "inactive.google@test.com",
-                        "newgoogle@test.com",
-                        "newregister@test.com", 
-                    ])
+                    User.email.in_(
+                        [
+                            "existing.google@test.com",
+                            "emailonly.google@test.com",
+                            "inactive.google@test.com",
+                            "newgoogle@test.com",
+                            "newregister@test.com",
+                        ]
+                    )
                 )
             )
 
@@ -127,8 +135,8 @@ async def seed_google_users(test_session_factory, seed_users):
 # POST /auth/google
 # ══════════════════════════════════════════════════════════════════════════════
 
-class TestGoogleAuth:
 
+class TestGoogleAuth:
     async def test_new_user_gets_404_no_account(
         self, unauthenticated_client: AsyncClient, seed_google_users
     ):
@@ -138,7 +146,7 @@ class TestGoogleAuth:
             email="newgoogle@test.com",
         ):
             resp = await unauthenticated_client.post(
-                "/api/v1/auth/google", json={"token": "fake-token", "mode": "login"} 
+                "/api/v1/auth/google", json={"token": "fake-token", "mode": "login"}
             )
         assert resp.status_code == 404
         assert resp.json()["detail"] == "no_account"
@@ -160,9 +168,7 @@ class TestGoogleAuth:
         assert data["token_type"] == "bearer"
 
         async with test_session_factory() as session:
-            result = await session.execute(
-                select(User).where(User.email == "newregister@test.com")
-            )
+            result = await session.execute(select(User).where(User.email == "newregister@test.com"))
             user = result.scalar_one_or_none()
             assert user is not None
             assert user.google_id == "brand-new-register-id"
@@ -246,13 +252,9 @@ class TestGoogleAuth:
         assert resp.status_code == 401
         assert resp.json()["detail"] == "Invalid Google token."
 
-    async def test_missing_token_returns_422(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_missing_token_returns_422(self, unauthenticated_client: AsyncClient):
         """Missing token field returns 422."""
-        resp = await unauthenticated_client.post(
-            "/api/v1/auth/google", json={}
-        )
+        resp = await unauthenticated_client.post("/api/v1/auth/google", json={})
         assert resp.status_code == 422
 
     async def test_unverified_google_email_returns_400(

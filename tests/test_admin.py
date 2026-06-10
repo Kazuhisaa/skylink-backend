@@ -1,11 +1,14 @@
 import uuid
-import pytest_asyncio
 from datetime import datetime, timezone
+
+import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import delete
-from app.models.bookings import Booking
-from app.models.flights import Airport, Aircraft, SeatClass, Flight, AircraftSeat
+
 from app.models.auth import LoginAttempt
+from app.models.bookings import Booking
+from app.models.flights import Aircraft, AircraftSeat, Airport, Flight, SeatClass
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
@@ -93,18 +96,24 @@ async def seed_admin_report_data(test_session_factory, seed_users):
         async with session.begin():
             await session.execute(
                 delete(Booking).where(
-                    Booking.id.in_([
-                        booking_jan.id,
-                        booking_mar_confirmed.id,
-                        booking_mar_cancelled.id,
-                    ])
+                    Booking.id.in_(
+                        [
+                            booking_jan.id,
+                            booking_mar_confirmed.id,
+                            booking_mar_cancelled.id,
+                        ]
+                    )
                 )
             )
             await session.execute(delete(Flight).where(Flight.id == flight.id))
-            await session.execute(delete(AircraftSeat).where(AircraftSeat.seat_class_id == seat_class.id))
+            await session.execute(
+                delete(AircraftSeat).where(AircraftSeat.seat_class_id == seat_class.id)
+            )
             await session.execute(delete(SeatClass).where(SeatClass.id == seat_class.id))
             await session.execute(delete(Aircraft).where(Aircraft.id == aircraft.id))
-            await session.execute(delete(Airport).where(Airport.id.in_([origin.id, destination.id])))
+            await session.execute(
+                delete(Airport).where(Airport.id.in_([origin.id, destination.id]))
+            )
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
@@ -137,9 +146,7 @@ async def seed_login_attempts(test_session_factory, seed_users):
     async with test_session_factory() as session:
         async with session.begin():
             await session.execute(
-                delete(LoginAttempt).where(
-                    LoginAttempt.id.in_([a.id for a in attempts])
-                )
+                delete(LoginAttempt).where(LoginAttempt.id.in_([a.id for a in attempts]))
             )
 
 
@@ -147,9 +154,7 @@ async def seed_login_attempts(test_session_factory, seed_users):
 # GET /admin/reports  — booking report
 # ══════════════════════════════════════════════════════════════════════════════
 class TestGetBookingReport:
-    async def test_admin_can_access_report(
-        self, admin_client: AsyncClient, seed_admin_report_data
-    ):
+    async def test_admin_can_access_report(self, admin_client: AsyncClient, seed_admin_report_data):
         resp = await admin_client.get("/api/v1/admin/reports")
         assert resp.status_code == 200
 
@@ -159,9 +164,7 @@ class TestGetBookingReport:
         resp = await passenger_client.get("/api/v1/admin/reports")
         assert resp.status_code == 403
 
-    async def test_unauthenticated_cannot_access_report(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_unauthenticated_cannot_access_report(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get("/api/v1/admin/reports")
         assert resp.status_code == 401
 
@@ -177,9 +180,7 @@ class TestGetBookingReport:
         assert "confirmed_revenue" in data
         assert "monthly_revenue" in data
 
-    async def test_monthly_revenue_is_list(
-        self, admin_client: AsyncClient, seed_admin_report_data
-    ):
+    async def test_monthly_revenue_is_list(self, admin_client: AsyncClient, seed_admin_report_data):
         resp = await admin_client.get("/api/v1/admin/reports")
         data = resp.json()
         assert isinstance(data["monthly_revenue"], list)
@@ -211,9 +212,7 @@ class TestGetBookingReport:
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
         resp = await admin_client.get(
-            "/api/v1/admin/reports"
-            "?date_from=2026-03-01T00:00:00Z"
-            "&date_to=2026-03-31T23:59:59Z"
+            "/api/v1/admin/reports?date_from=2026-03-01T00:00:00Z&date_to=2026-03-31T23:59:59Z"
         )
         data = resp.json()
         assert data["total_bookings"] == 2
@@ -225,9 +224,7 @@ class TestGetBookingReport:
     async def test_date_from_only_excludes_earlier_bookings(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        resp = await admin_client.get(
-            "/api/v1/admin/reports?date_from=2026-02-01T00:00:00Z"
-        )
+        resp = await admin_client.get("/api/v1/admin/reports?date_from=2026-02-01T00:00:00Z")
         data = resp.json()
         assert data["total_bookings"] >= 2
         assert data["total_revenue"] >= 5_000
@@ -235,9 +232,7 @@ class TestGetBookingReport:
     async def test_date_to_only_excludes_later_bookings(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        resp = await admin_client.get(
-            "/api/v1/admin/reports?date_to=2026-01-31T23:59:59Z"
-        )
+        resp = await admin_client.get("/api/v1/admin/reports?date_to=2026-01-31T23:59:59Z")
         data = resp.json()
         assert data["total_bookings"] >= 1
         assert data["confirmed_revenue"] >= 5_000
@@ -246,9 +241,7 @@ class TestGetBookingReport:
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
         resp = await admin_client.get(
-            "/api/v1/admin/reports"
-            "?date_from=2020-01-01T00:00:00Z"
-            "&date_to=2020-01-02T00:00:00Z"
+            "/api/v1/admin/reports?date_from=2020-01-01T00:00:00Z&date_to=2020-01-02T00:00:00Z"
         )
         data = resp.json()
         assert data["total_bookings"] == 0
@@ -259,9 +252,7 @@ class TestGetBookingReport:
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
         resp = await admin_client.get(
-            "/api/v1/admin/reports"
-            "?date_from=2026-03-01T00:00:00Z"
-            "&date_to=2026-03-31T23:59:59Z"
+            "/api/v1/admin/reports?date_from=2026-03-01T00:00:00Z&date_to=2026-03-31T23:59:59Z"
         )
         data = resp.json()
         assert data["date_from"] is not None
@@ -275,12 +266,8 @@ class TestGetBookingReport:
         assert data["date_from"] is None
         assert data["date_to"] is None
 
-    async def test_invalid_date_format_returns_422(
-        self, admin_client: AsyncClient
-    ):
-        resp = await admin_client.get(
-            "/api/v1/admin/reports?date_from=not-a-date"
-        )
+    async def test_invalid_date_format_returns_422(self, admin_client: AsyncClient):
+        resp = await admin_client.get("/api/v1/admin/reports?date_from=not-a-date")
         assert resp.status_code == 422
 
 
@@ -294,9 +281,7 @@ class TestGetRouteReport:
         resp = await admin_client.get("/api/v1/admin/reports/routes")
         assert resp.status_code == 200
 
-    async def test_passenger_cannot_access_route_report(
-        self, passenger_client: AsyncClient
-    ):
+    async def test_passenger_cannot_access_route_report(self, passenger_client: AsyncClient):
         resp = await passenger_client.get("/api/v1/admin/reports/routes")
         assert resp.status_code == 403
 
@@ -346,12 +331,8 @@ class TestGetRouteReport:
         data = resp.json()
         assert data["routes"] == []
 
-    async def test_route_report_invalid_date_returns_422(
-        self, admin_client: AsyncClient
-    ):
-        resp = await admin_client.get(
-            "/api/v1/admin/reports/routes?date_from=bad-date"
-        )
+    async def test_route_report_invalid_date_returns_422(self, admin_client: AsyncClient):
+        resp = await admin_client.get("/api/v1/admin/reports/routes?date_from=bad-date")
         assert resp.status_code == 422
 
 
@@ -365,9 +346,7 @@ class TestGetCancellationReport:
         resp = await admin_client.get("/api/v1/admin/reports/cancellations")
         assert resp.status_code == 200
 
-    async def test_passenger_cannot_access_cancellation_report(
-        self, passenger_client: AsyncClient
-    ):
+    async def test_passenger_cannot_access_cancellation_report(self, passenger_client: AsyncClient):
         resp = await passenger_client.get("/api/v1/admin/reports/cancellations")
         assert resp.status_code == 403
 
@@ -418,12 +397,8 @@ class TestGetCancellationReport:
         data = resp.json()
         assert data["monthly_cancellations"] == []
 
-    async def test_cancellation_report_invalid_date_returns_422(
-        self, admin_client: AsyncClient
-    ):
-        resp = await admin_client.get(
-            "/api/v1/admin/reports/cancellations?date_from=bad-date"
-        )
+    async def test_cancellation_report_invalid_date_returns_422(self, admin_client: AsyncClient):
+        resp = await admin_client.get("/api/v1/admin/reports/cancellations?date_from=bad-date")
         assert resp.status_code == 422
 
 
@@ -431,15 +406,11 @@ class TestGetCancellationReport:
 # GET /admin/reports/user-growth
 # ══════════════════════════════════════════════════════════════════════════════
 class TestGetUserGrowthReport:
-    async def test_admin_can_access_user_growth_report(
-        self, admin_client: AsyncClient, seed_users
-    ):
+    async def test_admin_can_access_user_growth_report(self, admin_client: AsyncClient, seed_users):
         resp = await admin_client.get("/api/v1/admin/reports/user-growth")
         assert resp.status_code == 200
 
-    async def test_passenger_cannot_access_user_growth_report(
-        self, passenger_client: AsyncClient
-    ):
+    async def test_passenger_cannot_access_user_growth_report(self, passenger_client: AsyncClient):
         resp = await passenger_client.get("/api/v1/admin/reports/user-growth")
         assert resp.status_code == 403
 
@@ -462,17 +433,13 @@ class TestGetUserGrowthReport:
             assert "year" in point
             assert "new_users" in point
 
-    async def test_user_growth_counts_seeded_users(
-        self, admin_client: AsyncClient, seed_users
-    ):
+    async def test_user_growth_counts_seeded_users(self, admin_client: AsyncClient, seed_users):
         resp = await admin_client.get("/api/v1/admin/reports/user-growth")
         data = resp.json()
         total = sum(p["new_users"] for p in data["monthly_growth"])
         assert total >= 2  # at least admin + passenger seeded
 
-    async def test_user_growth_empty_range_returns_empty(
-        self, admin_client: AsyncClient
-    ):
+    async def test_user_growth_empty_range_returns_empty(self, admin_client: AsyncClient):
         resp = await admin_client.get(
             "/api/v1/admin/reports/user-growth"
             "?date_from=2000-01-01T00:00:00Z"
@@ -481,12 +448,8 @@ class TestGetUserGrowthReport:
         data = resp.json()
         assert data["monthly_growth"] == []
 
-    async def test_user_growth_invalid_date_returns_422(
-        self, admin_client: AsyncClient
-    ):
-        resp = await admin_client.get(
-            "/api/v1/admin/reports/user-growth?date_from=bad-date"
-        )
+    async def test_user_growth_invalid_date_returns_422(self, admin_client: AsyncClient):
+        resp = await admin_client.get("/api/v1/admin/reports/user-growth?date_from=bad-date")
         assert resp.status_code == 422
 
 
@@ -500,9 +463,7 @@ class TestGetActivityLogs:
         resp = await admin_client.get("/api/v1/admin/activity-logs")
         assert resp.status_code == 200
 
-    async def test_passenger_cannot_access_activity_logs(
-        self, passenger_client: AsyncClient
-    ):
+    async def test_passenger_cannot_access_activity_logs(self, passenger_client: AsyncClient):
         resp = await passenger_client.get("/api/v1/admin/activity-logs")
         assert resp.status_code == 403
 
@@ -533,9 +494,7 @@ class TestGetActivityLogs:
             assert "email" in log
             assert "attempted_at" in log
 
-    async def test_activity_logs_pagination(
-        self, admin_client: AsyncClient, seed_login_attempts
-    ):
+    async def test_activity_logs_pagination(self, admin_client: AsyncClient, seed_login_attempts):
         resp = await admin_client.get("/api/v1/admin/activity-logs?page=1&size=1")
         data = resp.json()
         assert len(data["logs"]) <= 1
@@ -543,15 +502,11 @@ class TestGetActivityLogs:
     async def test_activity_logs_search_by_email(
         self, admin_client: AsyncClient, seed_login_attempts
     ):
-        resp = await admin_client.get(
-            "/api/v1/admin/activity-logs?search=unknown@test.com"
-        )
+        resp = await admin_client.get("/api/v1/admin/activity-logs?search=unknown@test.com")
         data = resp.json()
         assert all("unknown" in log["email"] for log in data["logs"])
 
-    async def test_activity_logs_date_filter(
-        self, admin_client: AsyncClient, seed_login_attempts
-    ):
+    async def test_activity_logs_date_filter(self, admin_client: AsyncClient, seed_login_attempts):
         resp = await admin_client.get(
             "/api/v1/admin/activity-logs"
             "?date_from=2026-04-01T00:00:00Z"
@@ -560,9 +515,7 @@ class TestGetActivityLogs:
         data = resp.json()
         assert data["total"] >= 2
 
-    async def test_activity_logs_empty_range(
-        self, admin_client: AsyncClient, seed_login_attempts
-    ):
+    async def test_activity_logs_empty_range(self, admin_client: AsyncClient, seed_login_attempts):
         resp = await admin_client.get(
             "/api/v1/admin/activity-logs"
             "?date_from=2000-01-01T00:00:00Z"
@@ -572,17 +525,11 @@ class TestGetActivityLogs:
         assert data["total"] == 0
         assert data["logs"] == []
 
-    async def test_activity_logs_invalid_date_returns_422(
-        self, admin_client: AsyncClient
-    ):
-        resp = await admin_client.get(
-            "/api/v1/admin/activity-logs?date_from=bad-date"
-        )
+    async def test_activity_logs_invalid_date_returns_422(self, admin_client: AsyncClient):
+        resp = await admin_client.get("/api/v1/admin/activity-logs?date_from=bad-date")
         assert resp.status_code == 422
 
-    async def test_activity_logs_invalid_page_returns_422(
-        self, admin_client: AsyncClient
-    ):
+    async def test_activity_logs_invalid_page_returns_422(self, admin_client: AsyncClient):
         resp = await admin_client.get("/api/v1/admin/activity-logs?page=0")
         assert resp.status_code == 422
 
@@ -591,9 +538,7 @@ class TestGetActivityLogs:
 # GET /admin/airports/public
 # ══════════════════════════════════════════════════════════════════════════════
 class TestPublicAirportEndpoints:
-    async def test_public_list_airports_no_auth_required(
-        self, unauthenticated_client: AsyncClient
-    ):
+    async def test_public_list_airports_no_auth_required(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.get("/api/v1/admin/airports/public")
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
@@ -601,9 +546,7 @@ class TestPublicAirportEndpoints:
     async def test_public_get_airport_by_iata(
         self, unauthenticated_client: AsyncClient, seed_admin_report_data
     ):
-        resp = await unauthenticated_client.get(
-            "/api/v1/admin/airports/public/AD1"
-        )
+        resp = await unauthenticated_client.get("/api/v1/admin/airports/public/AD1")
         assert resp.status_code == 200
         data = resp.json()
         assert data["iata_code"] == "AD1"
@@ -611,9 +554,7 @@ class TestPublicAirportEndpoints:
     async def test_public_get_nonexistent_iata_returns_404(
         self, unauthenticated_client: AsyncClient
     ):
-        resp = await unauthenticated_client.get(
-            "/api/v1/admin/airports/public/ZZZ"
-        )
+        resp = await unauthenticated_client.get("/api/v1/admin/airports/public/ZZZ")
         assert resp.status_code == 404
 
 
@@ -643,9 +584,7 @@ class TestAdminAirportCRUD:
         data = resp.json()
         assert data["iata_code"] == "TST"
 
-    async def test_admin_can_create_airport_with_optional_fields(
-        self, admin_client: AsyncClient
-    ):
+    async def test_admin_can_create_airport_with_optional_fields(self, admin_client: AsyncClient):
         payload = {
             "iata_code": "OPT",
             "name": "Optional Airport",
@@ -678,13 +617,16 @@ class TestAdminAirportCRUD:
         assert second.status_code == 409
 
     async def test_admin_can_update_airport(self, admin_client: AsyncClient):
-        created = await admin_client.post("/api/v1/admin/airports", json={
-            "iata_code": "UPD",
-            "name": "Old Airport",
-            "city": "Old City",
-            "country": "PH",
-            "timezone": "Asia/Manila",
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/airports",
+            json={
+                "iata_code": "UPD",
+                "name": "Old Airport",
+                "city": "Old City",
+                "country": "PH",
+                "timezone": "Asia/Manila",
+            },
+        )
         airport_id = created.json()["id"]
         updated = await admin_client.put(
             f"/api/v1/admin/airports/{airport_id}",
@@ -694,13 +636,16 @@ class TestAdminAirportCRUD:
         assert updated.json()["name"] == "Updated Airport"
 
     async def test_admin_can_update_airport_image_url(self, admin_client: AsyncClient):
-        created = await admin_client.post("/api/v1/admin/airports", json={
-            "iata_code": "IMG",
-            "name": "Image Airport",
-            "city": "City",
-            "country": "PH",
-            "timezone": "Asia/Manila",
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/airports",
+            json={
+                "iata_code": "IMG",
+                "name": "Image Airport",
+                "city": "City",
+                "country": "PH",
+                "timezone": "Asia/Manila",
+            },
+        )
         airport_id = created.json()["id"]
         updated = await admin_client.put(
             f"/api/v1/admin/airports/{airport_id}",
@@ -710,13 +655,16 @@ class TestAdminAirportCRUD:
         assert updated.json()["image_url"] == "https://example.com/new.jpg"
 
     async def test_admin_can_delete_unused_airport(self, admin_client: AsyncClient):
-        created = await admin_client.post("/api/v1/admin/airports", json={
-            "iata_code": "DEL",
-            "name": "Delete Airport",
-            "city": "Delete City",
-            "country": "PH",
-            "timezone": "Asia/Manila",
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/airports",
+            json={
+                "iata_code": "DEL",
+                "name": "Delete Airport",
+                "city": "Delete City",
+                "country": "PH",
+                "timezone": "Asia/Manila",
+            },
+        )
         airport_id = created.json()["id"]
         deleted = await admin_client.delete(f"/api/v1/admin/airports/{airport_id}")
         assert deleted.status_code == 204
@@ -728,18 +676,14 @@ class TestAdminAirportCRUD:
         resp = await admin_client.delete(f"/api/v1/admin/airports/{airport_id}")
         assert resp.status_code == 409
 
-    async def test_update_nonexistent_airport_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_update_nonexistent_airport_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.put(
             "/api/v1/admin/airports/999999",
             json={"name": "Ghost"},
         )
         assert resp.status_code == 404
 
-    async def test_delete_nonexistent_airport_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_nonexistent_airport_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.delete("/api/v1/admin/airports/999999")
         assert resp.status_code == 404
 
@@ -805,13 +749,16 @@ class TestAdminAircraftCRUD:
     async def test_admin_can_update_aircraft(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created = await admin_client.post("/api/v1/admin/aircraft", json={
-            "model": "ATR 72",
-            "registration": "RP-UPD01",
-            "seat_configurations": [
-                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 5},
-            ],
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/aircraft",
+            json={
+                "model": "ATR 72",
+                "registration": "RP-UPD01",
+                "seat_configurations": [
+                    {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 5},
+                ],
+            },
+        )
         aircraft_id = created.json()["id"]
         updated = await admin_client.put(
             f"/api/v1/admin/aircraft/{aircraft_id}",
@@ -823,13 +770,16 @@ class TestAdminAircraftCRUD:
     async def test_admin_can_delete_unused_aircraft(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created = await admin_client.post("/api/v1/admin/aircraft", json={
-            "model": "Delete Aircraft",
-            "registration": "RP-DEL01",
-            "seat_configurations": [
-                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 3},
-            ],
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/aircraft",
+            json={
+                "model": "Delete Aircraft",
+                "registration": "RP-DEL01",
+                "seat_configurations": [
+                    {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 3},
+                ],
+            },
+        )
         aircraft_id = created.json()["id"]
         resp = await admin_client.delete(f"/api/v1/admin/aircraft/{aircraft_id}")
         assert resp.status_code == 204
@@ -842,18 +792,14 @@ class TestAdminAircraftCRUD:
         )
         assert resp.status_code == 409
 
-    async def test_update_nonexistent_aircraft_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_update_nonexistent_aircraft_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.put(
             "/api/v1/admin/aircraft/999999",
             json={"model": "Ghost"},
         )
         assert resp.status_code == 404
 
-    async def test_delete_nonexistent_aircraft_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_nonexistent_aircraft_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.delete("/api/v1/admin/aircraft/999999")
         assert resp.status_code == 404
 
@@ -867,9 +813,7 @@ class TestAdminSeatClassCRUD:
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    async def test_passenger_cannot_list_seat_classes(
-        self, passenger_client: AsyncClient
-    ):
+    async def test_passenger_cannot_list_seat_classes(self, passenger_client: AsyncClient):
         resp = await passenger_client.get("/api/v1/admin/seat-classes")
         assert resp.status_code == 403
 
@@ -881,9 +825,7 @@ class TestAdminSeatClassCRUD:
         assert resp.status_code == 201
         assert "name" in resp.json()
 
-    async def test_duplicate_seat_class_name_returns_409(
-        self, admin_client: AsyncClient
-    ):
+    async def test_duplicate_seat_class_name_returns_409(self, admin_client: AsyncClient):
         name = f"DupClass-{uuid.uuid4().hex[:4]}"
         first = await admin_client.post("/api/v1/admin/seat-classes", json={"name": name})
         assert first.status_code == 201
@@ -904,9 +846,7 @@ class TestAdminSeatClassCRUD:
         assert updated.status_code == 200
         assert updated.json()["name"] == new_name
 
-    async def test_admin_can_delete_unused_seat_class(
-        self, admin_client: AsyncClient
-    ):
+    async def test_admin_can_delete_unused_seat_class(self, admin_client: AsyncClient):
         created = await admin_client.post(
             "/api/v1/admin/seat-classes",
             json={"name": f"DelClass-{uuid.uuid4().hex[:4]}"},
@@ -923,18 +863,14 @@ class TestAdminSeatClassCRUD:
         )
         assert resp.status_code == 409
 
-    async def test_update_nonexistent_seat_class_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_update_nonexistent_seat_class_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.put(
             "/api/v1/admin/seat-classes/999999",
             json={"name": "Ghost"},
         )
         assert resp.status_code == 404
 
-    async def test_delete_nonexistent_seat_class_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_nonexistent_seat_class_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.delete("/api/v1/admin/seat-classes/999999")
         assert resp.status_code == 404
 
@@ -961,13 +897,16 @@ class TestAdminAircraftSeats:
     async def test_admin_can_add_seats_to_aircraft(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created = await admin_client.post("/api/v1/admin/aircraft", json={
-            "model": "Seat Test AC",
-            "registration": f"RP-ST{uuid.uuid4().hex[:4].upper()}",
-            "seat_configurations": [
-                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 2},
-            ],
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/aircraft",
+            json={
+                "model": "Seat Test AC",
+                "registration": f"RP-ST{uuid.uuid4().hex[:4].upper()}",
+                "seat_configurations": [
+                    {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 2},
+                ],
+            },
+        )
         aircraft_id = created.json()["id"]
         resp = await admin_client.post(
             f"/api/v1/admin/aircraft/{aircraft_id}/seats",
@@ -982,34 +921,44 @@ class TestAdminAircraftSeats:
     async def test_add_duplicate_seat_number_returns_409(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created = await admin_client.post("/api/v1/admin/aircraft", json={
-            "model": "Dup Seat AC",
-            "registration": f"RP-DS{uuid.uuid4().hex[:4].upper()}",
-            "seat_configurations": [
-                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 1},
-            ],
-        })
+        created = await admin_client.post(
+            "/api/v1/admin/aircraft",
+            json={
+                "model": "Dup Seat AC",
+                "registration": f"RP-DS{uuid.uuid4().hex[:4].upper()}",
+                "seat_configurations": [
+                    {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 1},
+                ],
+            },
+        )
         aircraft_id = created.json()["id"]
         await admin_client.post(
             f"/api/v1/admin/aircraft/{aircraft_id}/seats",
-            json=[{"seat_class_id": seed_admin_report_data["seat_class"].id, "seat_number": "DUP1"}],
+            json=[
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "seat_number": "DUP1"}
+            ],
         )
         resp = await admin_client.post(
             f"/api/v1/admin/aircraft/{aircraft_id}/seats",
-            json=[{"seat_class_id": seed_admin_report_data["seat_class"].id, "seat_number": "DUP1"}],
+            json=[
+                {"seat_class_id": seed_admin_report_data["seat_class"].id, "seat_number": "DUP1"}
+            ],
         )
         assert resp.status_code == 409
 
     async def test_admin_can_delete_aircraft_seat(
         self, admin_client: AsyncClient, seed_admin_report_data
     ):
-        created_ac = await admin_client.post("/api/v1/admin/aircraft", json={
-            "model": "Del Seat AC",
-            "registration": f"RP-DL{uuid.uuid4().hex[:4].upper()}",
-            "seat_configurations": [
-                {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 1},
-            ],
-        })
+        created_ac = await admin_client.post(
+            "/api/v1/admin/aircraft",
+            json={
+                "model": "Del Seat AC",
+                "registration": f"RP-DL{uuid.uuid4().hex[:4].upper()}",
+                "seat_configurations": [
+                    {"seat_class_id": seed_admin_report_data["seat_class"].id, "quantity": 1},
+                ],
+            },
+        )
         aircraft_id = created_ac.json()["id"]
         seats_resp = await admin_client.post(
             f"/api/v1/admin/aircraft/{aircraft_id}/seats",
@@ -1019,8 +968,6 @@ class TestAdminAircraftSeats:
         resp = await admin_client.delete(f"/api/v1/admin/aircraft/seats/{seat_id}")
         assert resp.status_code == 204
 
-    async def test_delete_nonexistent_seat_returns_404(
-        self, admin_client: AsyncClient
-    ):
+    async def test_delete_nonexistent_seat_returns_404(self, admin_client: AsyncClient):
         resp = await admin_client.delete("/api/v1/admin/aircraft/seats/999999")
         assert resp.status_code == 404

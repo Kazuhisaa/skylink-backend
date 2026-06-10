@@ -1,10 +1,13 @@
 import logging
+
 from redis import asyncio as aioredis
+
 from app.core.settings import settings
 
 logger = logging.getLogger(__name__)
 
 REDIS_URL = settings.REDIS_URL
+
 
 class RedisClient:
     def __init__(self):
@@ -12,11 +15,7 @@ class RedisClient:
 
     async def connect(self):
         try:
-            self.redis = await aioredis.from_url(
-                REDIS_URL, 
-                encoding="utf-8", 
-                decode_responses=True
-            )
+            self.redis = await aioredis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
             await self.redis.ping()
             logger.info("Successfully connected to Redis")
         except Exception as e:
@@ -49,5 +48,6 @@ class RedisClient:
         keys = await self.redis.keys(pattern)
         if keys:
             await self.redis.delete(*keys)
+
 
 redis_client = RedisClient()

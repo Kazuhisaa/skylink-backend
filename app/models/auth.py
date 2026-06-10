@@ -1,9 +1,11 @@
 import uuid
-from sqlalchemy import Column, String, TIMESTAMP, Integer, Boolean, ForeignKey, TIMESTAMP
+
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
-from app.database import Base
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from app.database import Base
 
 
 class Role(Base):
@@ -39,8 +41,14 @@ class User(Base):
     role = relationship("Role", back_populates="users")
     bookings = relationship("Booking", back_populates="user", foreign_keys="Booking.user_id")
     created_flights = relationship("Flight", back_populates="created_by_user")
-    reschedules = relationship("RescheduleHistory", back_populates="rescheduled_by_user", foreign_keys="RescheduleHistory.rescheduled_by")
-    cancellations = relationship("Cancellation", back_populates="cancelled_by_user", foreign_keys="Cancellation.cancelled_by")
+    reschedules = relationship(
+        "RescheduleHistory",
+        back_populates="rescheduled_by_user",
+        foreign_keys="RescheduleHistory.rescheduled_by",
+    )
+    cancellations = relationship(
+        "Cancellation", back_populates="cancelled_by_user", foreign_keys="Cancellation.cancelled_by"
+    )
 
 
 class LoginAttempt(Base):
@@ -49,4 +57,3 @@ class LoginAttempt(Base):
     email = Column(String(255), nullable=False)
     ip_address = Column(String(50), nullable=True)
     attempted_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-

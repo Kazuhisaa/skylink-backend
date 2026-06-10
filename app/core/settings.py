@@ -1,4 +1,5 @@
 import os
+
 from pydantic_settings import BaseSettings
 
 
@@ -56,7 +57,6 @@ class Settings(BaseSettings):
     PAYMONGO_SECRET_KEY: str = ""
     PAYMONGO_PUBLIC_KEY: str = ""
     PAYMONGO_WEBHOOK_SECRET: str = ""
-
 
     # Alembic
     @property

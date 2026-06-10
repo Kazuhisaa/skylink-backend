@@ -1,16 +1,18 @@
 import uuid
+from datetime import datetime, timedelta, timezone
+
 import pytest_asyncio
-from datetime import datetime, timezone, timedelta
 from httpx import AsyncClient
 from sqlalchemy import delete
-from app.models.bookings import Booking
-from app.models.flights import Airport, Aircraft, SeatClass, Flight, FlightSeatPricing
-from app.models.auth import User
 
+from app.models.auth import User
+from app.models.bookings import Booking
+from app.models.flights import Aircraft, Airport, Flight, FlightSeatPricing, SeatClass
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SEED FIXTURES
 # ══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session")
 async def seed_ml_data(test_session_factory, seed_users):
@@ -52,19 +54,31 @@ async def seed_ml_data(test_session_factory, seed_users):
     # Spread bookings across multiple months to give the ML models enough data
     bookings = []
     months = [
-        (2025, 7), (2025, 8), (2025, 9), (2025, 10), (2025, 11), (2025, 12),
-        (2026, 1), (2026, 2), (2026, 3), (2026, 4), (2026, 5), (2026, 6),
+        (2025, 7),
+        (2025, 8),
+        (2025, 9),
+        (2025, 10),
+        (2025, 11),
+        (2025, 12),
+        (2026, 1),
+        (2026, 2),
+        (2026, 3),
+        (2026, 4),
+        (2026, 5),
+        (2026, 6),
     ]
     for year, month in months:
         for _ in range(3):
-            bookings.append(Booking(
-                id=uuid.uuid4(),
-                user_id=admin_user.id,
-                seat_number=f"{uuid.uuid4().hex[:2].upper()}",
-                status="confirmed",
-                total_price=5000 + (month * 100),
-                booked_at=datetime(year, month, 10, 12, 0, tzinfo=timezone.utc),
-            ))
+            bookings.append(
+                Booking(
+                    id=uuid.uuid4(),
+                    user_id=admin_user.id,
+                    seat_number=f"{uuid.uuid4().hex[:2].upper()}",
+                    status="confirmed",
+                    total_price=5000 + (month * 100),
+                    booked_at=datetime(year, month, 10, 12, 0, tzinfo=timezone.utc),
+                )
+            )
 
     # One cancelled booking for cancellation risk training data
     cancelled_booking = Booking(
@@ -148,10 +162,9 @@ async def seed_ml_data(test_session_factory, seed_users):
 # GET /admin/ml/revenue-forecast
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestRevenueForecast:
-    async def test_admin_can_access_revenue_forecast(
-        self, admin_client: AsyncClient, seed_ml_data
-    ):
+    async def test_admin_can_access_revenue_forecast(self, admin_client: AsyncClient, seed_ml_data):
         resp = await admin_client.get("/api/v1/admin/ml/revenue-forecast")
         assert resp.status_code == 200
 
@@ -256,10 +269,9 @@ class TestRevenueForecast:
 # GET /admin/ml/demand-forecast
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestDemandForecast:
-    async def test_admin_can_access_demand_forecast(
-        self, admin_client: AsyncClient, seed_ml_data
-    ):
+    async def test_admin_can_access_demand_forecast(self, admin_client: AsyncClient, seed_ml_data):
         resp = await admin_client.get("/api/v1/admin/ml/demand-forecast")
         assert resp.status_code == 200
 
@@ -275,9 +287,7 @@ class TestDemandForecast:
         resp = await unauthenticated_client.get("/api/v1/admin/ml/demand-forecast")
         assert resp.status_code == 401
 
-    async def test_demand_forecast_has_routes_field(
-        self, admin_client: AsyncClient, seed_ml_data
-    ):
+    async def test_demand_forecast_has_routes_field(self, admin_client: AsyncClient, seed_ml_data):
         resp = await admin_client.get("/api/v1/admin/ml/demand-forecast")
         data = resp.json()
         assert "routes" in data
@@ -335,6 +345,7 @@ class TestDemandForecast:
 # GET /admin/ml/cancellation-risk/{booking_id}
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestCancellationRisk:
     async def test_admin_can_access_cancellation_risk(
         self, admin_client: AsyncClient, seed_ml_data
@@ -354,9 +365,7 @@ class TestCancellationRisk:
         self, unauthenticated_client: AsyncClient, seed_ml_data
     ):
         booking_id = seed_ml_data["target_booking"].id
-        resp = await unauthenticated_client.get(
-            f"/api/v1/admin/ml/cancellation-risk/{booking_id}"
-        )
+        resp = await unauthenticated_client.get(f"/api/v1/admin/ml/cancellation-risk/{booking_id}")
         assert resp.status_code == 401
 
     async def test_cancellation_risk_has_correct_fields(
@@ -419,6 +428,7 @@ class TestCancellationRisk:
 # GET /admin/ml/revenue-anomalies
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestRevenueAnomalies:
     async def test_admin_can_access_revenue_anomalies(
         self, admin_client: AsyncClient, seed_ml_data
@@ -448,9 +458,7 @@ class TestRevenueAnomalies:
         assert "mean_revenue" in data
         assert "std_revenue" in data
 
-    async def test_revenue_anomalies_monthly_is_list(
-        self, admin_client: AsyncClient, seed_ml_data
-    ):
+    async def test_revenue_anomalies_monthly_is_list(self, admin_client: AsyncClient, seed_ml_data):
         resp = await admin_client.get("/api/v1/admin/ml/revenue-anomalies")
         data = resp.json()
         assert isinstance(data["monthly"], list)
@@ -506,6 +514,7 @@ class TestRevenueAnomalies:
 # GET /admin/ml/pricing-suggestion/{flight_id}
 # ══════════════════════════════════════════════════════════════════════════════
 
+
 class TestPricingSuggestion:
     async def test_admin_can_access_pricing_suggestion(
         self, admin_client: AsyncClient, seed_ml_data
@@ -518,18 +527,14 @@ class TestPricingSuggestion:
         self, passenger_client: AsyncClient, seed_ml_data
     ):
         flight_id = seed_ml_data["flight"].id
-        resp = await passenger_client.get(
-            f"/api/v1/admin/ml/pricing-suggestion/{flight_id}"
-        )
+        resp = await passenger_client.get(f"/api/v1/admin/ml/pricing-suggestion/{flight_id}")
         assert resp.status_code == 403
 
     async def test_unauthenticated_cannot_access_pricing_suggestion(
         self, unauthenticated_client: AsyncClient, seed_ml_data
     ):
         flight_id = seed_ml_data["flight"].id
-        resp = await unauthenticated_client.get(
-            f"/api/v1/admin/ml/pricing-suggestion/{flight_id}"
-        )
+        resp = await unauthenticated_client.get(f"/api/v1/admin/ml/pricing-suggestion/{flight_id}")
         assert resp.status_code == 401
 
     async def test_pricing_suggestion_has_correct_fields(

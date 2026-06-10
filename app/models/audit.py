@@ -1,8 +1,10 @@
-from sqlalchemy import Column, Integer, ForeignKey, TIMESTAMP, Text, Numeric
+from sqlalchemy import TIMESTAMP, Column, ForeignKey, Integer, Numeric, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class RescheduleHistory(Base):
     __tablename__ = "reschedule_history"
@@ -15,8 +17,12 @@ class RescheduleHistory(Base):
     reason = Column(Text)
     rescheduled_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
-    booking = relationship("Booking", back_populates="reschedule_history", foreign_keys=[booking_id])
-    rescheduled_by_user = relationship("User", back_populates="reschedules", foreign_keys=[rescheduled_by])
+    booking = relationship(
+        "Booking", back_populates="reschedule_history", foreign_keys=[booking_id]
+    )
+    rescheduled_by_user = relationship(
+        "User", back_populates="reschedules", foreign_keys=[rescheduled_by]
+    )
 
 
 class Cancellation(Base):
@@ -30,4 +36,6 @@ class Cancellation(Base):
     cancelled_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
     booking = relationship("Booking", back_populates="cancellation", foreign_keys=[booking_id])
-    cancelled_by_user = relationship("User", back_populates="cancellations", foreign_keys=[cancelled_by])
+    cancelled_by_user = relationship(
+        "User", back_populates="cancellations", foreign_keys=[cancelled_by]
+    )
