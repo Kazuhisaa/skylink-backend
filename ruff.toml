@@ -17,9 +17,11 @@ select = [
 ignore = [
     "E501",
     "B008",
-    "F401",
     "E402",
 ]
+
+[lint.per-file-ignores]
+"app/models/__init__.py" = ["F401"]     # F401 = imported but unused ignore in __init__.py
 
 [lint.isort]
 known-first-party = ["app"]

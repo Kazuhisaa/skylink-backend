@@ -1,11 +1,10 @@
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest_asyncio
 from httpx import AsyncClient
 from sqlalchemy import delete
 
-from app.models.auth import User
 from app.models.bookings import Booking
 from app.models.flights import Aircraft, Airport, Flight, FlightSeatPricing, SeatClass
 

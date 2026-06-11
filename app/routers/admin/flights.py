@@ -1,15 +1,12 @@
 import uuid
-from datetime import datetime
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, require_admin
 from app.core.limiter import limiter
 from app.database import get_db
-from app.schemas.flights import FlightCreateWithPricing, FlightListRead, FlightRead, FlightUpdate
-from app.schemas.pagination import PaginatedResponse
+from app.schemas.flights import FlightCreateWithPricing, FlightRead, FlightUpdate
 from app.services import flights_service
 
 router = APIRouter(prefix="/flights", tags=["Admin - Flights"])

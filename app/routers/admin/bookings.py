@@ -1,19 +1,13 @@
 import math
-import uuid
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import require_admin
 from app.core.limiter import limiter
 from app.database import get_db
-from app.models.auth import User
 from app.schemas.bookings import (
-    BookingCreate,
     BookingListRead,
-    BookingRead,
-    CancelRequest,
-    RescheduleRequest,
 )
 from app.schemas.pagination import PaginatedResponse
 from app.services import bookings_service as booking_service

@@ -1,13 +1,12 @@
 import uuid
 from typing import List
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import require_admin
 from app.core.limiter import limiter
 from app.database import get_db
-from app.schemas.promotions import PromotionCreate, PromotionRead, PromotionUpdate
+from app.schemas.promotions import PromotionRead
 from app.services import promotions_service
 
 router = APIRouter(prefix="/promotions", tags=["Promotions"])
