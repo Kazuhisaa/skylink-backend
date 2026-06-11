@@ -4,10 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import require_admin
 from app.core.limiter import limiter
 from app.database import get_db
-from app.schemas.ml import RevenueForecastRead
-from app.services import ml_service
+from app.schemas.admin.ml import RevenueForecastRead
+from app.services.admin import ml_service
 
-router = APIRouter(prefix="/admin/ml", tags=["ML Analytics"])
+router = APIRouter(prefix="/admin/ml", tags=["Admin - ML Analytics"])
 
 # ─── Revenue Forecast ─────────────────────────────────────────────────────────
 

@@ -14,7 +14,7 @@ from app.schemas.admin.reports import (
     RouteReportRead,
     UserGrowthReportRead,
 )
-from app.services.admin import aircraft_service, reports_service
+from app.services.admin import reports_service
 
 router = APIRouter(prefix="/admin", tags=["Admin - Reports"])
 
@@ -31,7 +31,7 @@ async def get_booking_report(
     ),
     db: AsyncSession = Depends(get_db),
 ):
-    return await aircraft_service.get_booking_report(db, date_from, date_to)
+    return await reports_service.get_booking_report(db, date_from, date_to)
 
 
 @router.get(

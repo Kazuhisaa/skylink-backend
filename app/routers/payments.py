@@ -22,10 +22,7 @@ async def create_payment_intent(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Creates a PayMongo Payment Intent for a specific booking.
-    Rate limited to prevent abuse.
-    """
+    # Creates a PayMongo payment intent for the given booking
     return await payments_service.create_payment_intent(booking_id, current_user.id, db)
 
 
@@ -33,10 +30,7 @@ async def create_payment_intent(
 async def paymongo_webhook(
     request: Request, paymongo_signature: str = Header(None), db: AsyncSession = Depends(get_db)
 ):
-    """
-    Webhook listener for PayMongo events.
-    Verifies signature and updates booking/payment status.
-    """
+    # Receives PayMongo webhook events, verifies signature, and updates booking/payment status
     # 1. Get raw body for signature verification
     body_bytes = await request.body()
 

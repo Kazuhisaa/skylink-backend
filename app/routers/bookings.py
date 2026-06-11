@@ -20,32 +20,6 @@ from app.services import bookings_service as booking_service
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
 
-
-# ─── Admin Endpoints ───────────────────────────────────────────────────────────
-
-
-@router.get(
-    "/admin/all",
-    response_model=PaginatedResponse[BookingListRead],
-    dependencies=[Depends(require_admin)],
-)
-@limiter.limit("60/minute")
-async def get_all_bookings(
-    request: Request,
-    page: int = Query(1, ge=1),
-    size: int = Query(10, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-):
-    items, total = await booking_service.get_all_bookings(db, page, size)
-    return PaginatedResponse(
-        items=items,
-        total=total,
-        page=page,
-        size=size,
-        pages=math.ceil(total / size) if total > 0 else 0,
-    )
-
-
 # ─── Passenger Endpoints ───────────────────────────────────────────────────────
 
 

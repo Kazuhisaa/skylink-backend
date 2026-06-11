@@ -12,8 +12,10 @@ from app.models.flights import Flight
 from app.schemas.admin.reports import (
     ActivityLogListRead,
     ActivityLogRead,
+    BookingReportRead,
     CancellationReportRead,
     MonthlyCancellationPoint,
+    MonthlyRevenuePoint,
     MonthlyUserGrowthPoint,
     RouteBookingPoint,
     RouteReportRead,
@@ -191,4 +193,57 @@ async def get_activity_logs(
             for log in logs
         ],
         total=total,
+    )
+
+
+async def get_booking_report(
+    db: AsyncSession,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+) -> BookingReportRead:
+
+    query = select(Booking)
+
+    if date_from:
+        query = query.where(Booking.booked_at >= date_from)
+    if date_to:
+        query = query.where(Booking.booked_at <= date_to)
+
+    result = await db.execute(query)
+    bookings = result.scalars().all()
+
+    total_bookings = len(bookings)
+    confirmed = [b for b in bookings if b.status != "cancelled"]
+    cancelled = [b for b in bookings if b.status == "cancelled"]
+    total_revenue = sum(b.total_price for b in bookings)
+    confirmed_revenue = sum(b.total_price for b in confirmed)
+    # Build monthly breakdown
+    from collections import defaultdict
+
+    monthly: dict = defaultdict(lambda: {"revenue": 0, "bookings": 0})
+    for b in confirmed:
+        key = b.booked_at.strftime("%Y-%m")
+        monthly[key]["revenue"] += b.total_price
+        monthly[key]["bookings"] += 1
+
+    monthly_revenue = [
+        MonthlyRevenuePoint(
+            month=datetime.strptime(k, "%Y-%m").strftime("%b"),
+            year=int(k.split("-")[0]),
+            revenue=v["revenue"],
+            bookings=v["bookings"],
+        )
+        for k, v in sorted(monthly.items())
+    ]
+
+    logger.info(f"[ADMIN] Report generated — total={total_bookings} revenue={total_revenue}")
+    return BookingReportRead(
+        total_bookings=total_bookings,
+        confirmed_bookings=len(confirmed),
+        cancelled_bookings=len(cancelled),
+        total_revenue=total_revenue,
+        confirmed_revenue=confirmed_revenue,
+        monthly_revenue=monthly_revenue,
+        date_from=date_from,
+        date_to=date_to,
     )

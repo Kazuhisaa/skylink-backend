@@ -96,6 +96,10 @@ async def remove_seat_class(
 
 
 # ─── Aircraft Seats ─────────────────────────────────────────────────────────────
+@router.delete("/aircraft/seats/{seat_id}", status_code=204, dependencies=[Depends(require_admin)])
+@limiter.limit("30/minute")
+async def remove_aircraft_seat(request: Request, seat_id: int, db: AsyncSession = Depends(get_db)):
+    await aircraft_service.delete_aircraft_seat(seat_id, db)
 
 
 @router.get(
@@ -124,9 +128,3 @@ async def add_aircraft_seats(
     db: AsyncSession = Depends(get_db),
 ):
     return await aircraft_service.create_aircraft_seats(aircraft_id, body, db)
-
-
-@router.delete("/aircraft/seats/{seat_id}", status_code=204, dependencies=[Depends(require_admin)])
-@limiter.limit("30/minute")
-async def remove_aircraft_seat(request: Request, seat_id: int, db: AsyncSession = Depends(get_db)):
-    await aircraft_service.delete_aircraft_seat(seat_id, db)
