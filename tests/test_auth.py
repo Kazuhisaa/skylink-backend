@@ -477,7 +477,7 @@ class TestForgotPassword:
                 },
             )
         assert resp.status_code == 200
-        assert "password reset link" in resp.json()["message"].lower()
+        assert "6-digit verification code" in resp.json()["message"].lower()
 
     async def test_unregistered_email_returns_same_generic_message(
         self, unauthenticated_client: AsyncClient
@@ -490,7 +490,7 @@ class TestForgotPassword:
                 },
             )
         assert resp.status_code == 200
-        assert "password reset link" in resp.json()["message"].lower()
+        assert "6-digit verification code" in resp.json()["message"].lower()
 
     async def test_invalid_email_format_returns_422(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.post(

@@ -34,6 +34,7 @@ class User(Base):
     verification_token = Column(String(255), nullable=True)
     verification_token_expires_at = Column(TIMESTAMP(timezone=True), nullable=True)
     reset_password_token = Column(String(255), nullable=True)
+    reset_password_otp = Column(String(6), nullable=True)
     reset_password_expires_at = Column(TIMESTAMP(timezone=True), nullable=True)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
