@@ -164,8 +164,7 @@ async def get_activity_logs(
     date_to: Optional[datetime] = None,
 ) -> "ActivityLogListRead":
 
-    query = select(LoginAttempt).order_by(LoginAttempt.attempted_at.desc())
-
+    query = select(LoginAttempt).where(LoginAttempt.is_admin == True).order_by(LoginAttempt.attempted_at.desc())
     if search:
         query = query.where(LoginAttempt.email.ilike(f"%{search}%"))
     if date_from:
@@ -188,6 +187,8 @@ async def get_activity_logs(
                 id=str(log.id),
                 email=log.email,
                 ip_address=log.ip_address,
+                success=log.success,
+                is_admin=log.is_admin,
                 attempted_at=log.attempted_at,
             )
             for log in logs

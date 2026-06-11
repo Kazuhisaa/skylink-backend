@@ -72,8 +72,9 @@ class ActivityLogRead(BaseModel):
     id: str
     email: str
     ip_address: Optional[str] = None
+    success: bool
+    is_admin: bool
     attempted_at: datetime
-
     model_config = {"from_attributes": True}
 
 

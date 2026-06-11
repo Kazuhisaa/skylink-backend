@@ -26,8 +26,8 @@ async def purge_old_attempts(db: AsyncSession):
     await db.commit()
 
 
-async def record_attempt(email: str, ip: str | None, db: AsyncSession):
-    attempt = LoginAttempt(email=email, ip_address=ip)
+async def record_attempt(email: str, ip: str | None, db: AsyncSession, success: bool = False, is_admin: bool = False):
+    attempt = LoginAttempt(email=email, ip_address=ip, success=success, is_admin=is_admin)
     db.add(attempt)
     await db.commit()
 
@@ -38,24 +38,26 @@ async def verify_user(email: str, password: str, ip: str | None, db: AsyncSessio
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
 
+    is_admin = user.role_id == 1 if user else False
+
     if not user:
         logger.warning(f"[AUTH] Login failed — email not found: {email} ip={ip}")
+        await record_attempt(email, ip, db, success=False, is_admin=False)
         raise HTTPException(status_code=401, detail="Invalid email or password.")
-
     if not verify_password(password, user.password_hash):  # type: ignore
         logger.warning(f"[AUTH] Login failed — wrong password: email={email} ip={ip}")
+        await record_attempt(email, ip, db, success=False, is_admin=is_admin)
         raise HTTPException(status_code=401, detail="Invalid email or password.")
-
     if not user.is_active:  # type: ignore
+        await record_attempt(email, ip, db, success=False, is_admin=is_admin)
         raise HTTPException(status_code=403, detail="Account is deactivated.")
-
     if not user.is_verified:  # type: ignore
+        await record_attempt(email, ip, db, success=False, is_admin=is_admin)
         raise HTTPException(status_code=403, detail="Please verify your email address.")
-
-    await record_attempt(email, ip, db)
-
-    role = "admin" if user.role_id == 1 else "passenger"
+    await record_attempt(email, ip, db, success=True, is_admin=is_admin)
+    role = "admin" if is_admin else "passenger"
     logger.info(f"[AUTH], [role = {role}] Login success — user_id={user.id} email={email} ip={ip}")
+    
     return {"id": str(user.id), "email": user.email, "role_id": user.role_id}
 
 
