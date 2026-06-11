@@ -25,9 +25,12 @@ async def get_all_bookings(
     request: Request,
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1, le=100),
+    status: str | None = Query(None),
+    search: str | None = Query(None),
+    departure_date: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    items, total = await booking_service.get_all_bookings(db, page, size)
+    items, total = await booking_service.get_all_bookings(db, page, size, status, search, departure_date)
     return PaginatedResponse(
         items=items,
         total=total,
