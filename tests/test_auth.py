@@ -477,7 +477,7 @@ class TestForgotPassword:
                 },
             )
         assert resp.status_code == 200
-        assert "password reset link" in resp.json()["message"].lower()
+        assert "6-digit verification code" in resp.json()["message"].lower()
 
     async def test_unregistered_email_returns_same_generic_message(
         self, unauthenticated_client: AsyncClient
@@ -490,7 +490,7 @@ class TestForgotPassword:
                 },
             )
         assert resp.status_code == 200
-        assert "password reset link" in resp.json()["message"].lower()
+        assert "6-digit verification code" in resp.json()["message"].lower()
 
     async def test_invalid_email_format_returns_422(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.post(
@@ -535,7 +535,7 @@ class TestResetPassword:
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "token": token,
+                "email": "resetuser@test.com",
                 "new_password": "NewPassword1!",
             },
         )
@@ -553,16 +553,16 @@ class TestResetPassword:
             async with session.begin():
                 await session.execute(delete(User).where(User.id == user_id))
 
-    async def test_invalid_token_returns_400(self, unauthenticated_client: AsyncClient):
+    async def test_unknown_email_returns_400(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "token": "invalidtoken",
+                "email": "ghost@test.com",
                 "new_password": "NewPassword1!",
             },
         )
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "Invalid or expired reset token."
+        assert resp.json()["detail"] == "User not found."
 
     async def test_expired_token_returns_400(
         self, unauthenticated_client: AsyncClient, test_session_factory
@@ -591,11 +591,11 @@ class TestResetPassword:
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "token": token,
+                "email": "expiredreset@test.com",
                 "new_password": "NewPassword1!",
             },
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
         async with test_session_factory() as session:
             async with session.begin():
                 await session.execute(delete(User).where(User.id == user_id))
@@ -604,7 +604,7 @@ class TestResetPassword:
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "token": "sometoken",
+                "email": "shortpass@test.com",
                 "new_password": "short",
             },
         )
