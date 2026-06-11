@@ -237,11 +237,19 @@ async def cancel_booking(
 
 
 async def get_all_bookings(
-    db: AsyncSession, page: int = 1, size: int = 10
+    db: AsyncSession,
+    page: int = 1,
+    size: int = 10,
+    status: str | None = None,
+    search: str | None = None,
+    departure_date: str | None = None,
 ) -> tuple[list[Booking], int]:
-    # Base query
+    from app.models.flights import Flight as FlightModel
+    from sqlalchemy import or_, cast, String, func as sa_func
+
     query = (
         select(Booking)
+        .join(Booking.flight)
         .options(
             selectinload(Booking.flight).selectinload(Flight.origin_airport),
             selectinload(Booking.flight).selectinload(Flight.destination_airport),
@@ -253,17 +261,33 @@ async def get_all_bookings(
         )
         .order_by(Booking.booked_at.desc())
     )
-    # Count total
-    count_query = select(func.count()).select_from(Booking)
+
+    if status:
+        query = query.where(Booking.status == status)
+
+    if departure_date:
+        from sqlalchemy import func as safunc
+        query = query.where(
+            safunc.date(FlightModel.departure_time) == departure_date
+        )
+
+    if search:
+        search_lower = search.lower()
+        query = query.where(
+            or_(
+                sa_func.upper(sa_func.replace(cast(Booking.id, String), "-", "")).like(f"{search_lower.upper()}%"),
+                Booking.status.ilike(f"%{search_lower}%"),
+            )
+        )
+
+    count_query = select(func.count()).select_from(query.subquery())
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    # Paginate
     query = query.offset((page - 1) * size).limit(size)
     result = await db.execute(query)
     items = result.scalars().all()
-
-    return items, total  # type: ignore
+    return items, total
 
 
 # ─── Booking by PNR ────────────────────────────────────────────────────────────
