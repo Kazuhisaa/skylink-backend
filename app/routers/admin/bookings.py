@@ -1,4 +1,5 @@
 import math
+import uuid
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,7 @@ from app.core.limiter import limiter
 from app.database import get_db
 from app.schemas.bookings import (
     BookingListRead,
+    BookingRead,
 )
 from app.schemas.pagination import PaginatedResponse
 from app.services import bookings_service as booking_service
@@ -30,7 +32,9 @@ async def get_all_bookings(
     departure_date: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    items, total = await booking_service.get_all_bookings(db, page, size, status, search, departure_date)
+    items, total = await booking_service.get_all_bookings(
+        db, page, size, status, search, departure_date
+    )
     return PaginatedResponse(
         items=items,
         total=total,
@@ -38,3 +42,17 @@ async def get_all_bookings(
         size=size,
         pages=math.ceil(total / size) if total > 0 else 0,
     )
+
+
+@router.get(
+    "/admin/{booking_id}",
+    response_model=BookingRead,
+    dependencies=[Depends(require_admin)],
+)
+@limiter.limit("60/minute")
+async def get_booking_admin(
+    request: Request,
+    booking_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    return await booking_service.get_booking_admin(booking_id, db)

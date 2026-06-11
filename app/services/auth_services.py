@@ -26,7 +26,9 @@ async def purge_old_attempts(db: AsyncSession):
     await db.commit()
 
 
-async def record_attempt(email: str, ip: str | None, db: AsyncSession, success: bool = False, is_admin: bool = False):
+async def record_attempt(
+    email: str, ip: str | None, db: AsyncSession, success: bool = False, is_admin: bool = False
+):
     attempt = LoginAttempt(email=email, ip_address=ip, success=success, is_admin=is_admin)
     db.add(attempt)
     await db.commit()
@@ -57,7 +59,7 @@ async def verify_user(email: str, password: str, ip: str | None, db: AsyncSessio
     await record_attempt(email, ip, db, success=True, is_admin=is_admin)
     role = "admin" if is_admin else "passenger"
     logger.info(f"[AUTH], [role = {role}] Login success — user_id={user.id} email={email} ip={ip}")
-    
+
     return {"id": str(user.id), "email": user.email, "role_id": user.role_id}
 
 

@@ -244,8 +244,10 @@ async def get_all_bookings(
     search: str | None = None,
     departure_date: str | None = None,
 ) -> tuple[list[Booking], int]:
+    from sqlalchemy import String, cast, or_
+    from sqlalchemy import func as sa_func
+
     from app.models.flights import Flight as FlightModel
-    from sqlalchemy import or_, cast, String, func as sa_func
 
     query = (
         select(Booking)
@@ -267,15 +269,16 @@ async def get_all_bookings(
 
     if departure_date:
         from sqlalchemy import func as safunc
-        query = query.where(
-            safunc.date(FlightModel.departure_time) == departure_date
-        )
+
+        query = query.where(safunc.date(FlightModel.departure_time) == departure_date)
 
     if search:
         search_lower = search.lower()
         query = query.where(
             or_(
-                sa_func.upper(sa_func.replace(cast(Booking.id, String), "-", "")).like(f"{search_lower.upper()}%"),
+                sa_func.upper(sa_func.replace(cast(Booking.id, String), "-", "")).like(
+                    f"{search_lower.upper()}%"
+                ),
                 Booking.status.ilike(f"%{search_lower}%"),
             )
         )
@@ -355,3 +358,11 @@ async def get_booking_by_pnr_public(pnr: str, last_name: str, db: AsyncSession) 
     if last_name.lower() not in passenger_last_names:
         raise HTTPException(status_code=403, detail="Last name does not match booking.")
     return _build_pnr_response(booking, pnr)
+
+
+# ─── Get Booking by Admin ────────────────────────────────────────────────────────────
+
+
+async def get_booking_admin(booking_id: uuid.UUID, db: AsyncSession) -> Booking:
+    booking = await _get_booking_with_relations(booking_id, db)
+    return booking
