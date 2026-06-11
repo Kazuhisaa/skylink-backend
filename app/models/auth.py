@@ -56,4 +56,6 @@ class LoginAttempt(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(String(255), nullable=False)
     ip_address = Column(String(50), nullable=True)
+    success = Column(Boolean, server_default="false", nullable=False)
+    is_admin = Column(Boolean, server_default="false", nullable=False)
     attempted_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
