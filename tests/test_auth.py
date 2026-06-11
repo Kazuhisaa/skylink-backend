@@ -535,7 +535,7 @@ class TestResetPassword:
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "email": "resetuser@test.com",
+                "token": token,
                 "new_password": "NewPassword1!",
             },
         )
@@ -553,16 +553,16 @@ class TestResetPassword:
             async with session.begin():
                 await session.execute(delete(User).where(User.id == user_id))
 
-    async def test_unknown_email_returns_400(self, unauthenticated_client: AsyncClient):
+    async def test_invalid_token_returns_400(self, unauthenticated_client: AsyncClient):
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "email": "ghost@test.com",
+                "token": "invalidtoken",
                 "new_password": "NewPassword1!",
             },
         )
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "User not found."
+        assert resp.json()["detail"] == "Invalid or expired reset token."
 
     async def test_expired_token_returns_400(
         self, unauthenticated_client: AsyncClient, test_session_factory
@@ -591,11 +591,11 @@ class TestResetPassword:
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "email": "expiredreset@test.com",
+                "token": token,
                 "new_password": "NewPassword1!",
             },
         )
-        assert resp.status_code == 200
+        assert resp.status_code == 400
         async with test_session_factory() as session:
             async with session.begin():
                 await session.execute(delete(User).where(User.id == user_id))
@@ -604,7 +604,7 @@ class TestResetPassword:
         resp = await unauthenticated_client.post(
             "/api/v1/auth/reset-password",
             json={
-                "email": "shortpass@test.com",
+                "token": "sometoken",
                 "new_password": "short",
             },
         )

@@ -49,7 +49,7 @@ class VerifyOTPRequest(BaseModel):
 
 
 class ResetPasswordRequest(BaseModel):
-    email: EmailStr
+    token: str
     new_password: PasswordStr
 
 

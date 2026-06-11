@@ -94,7 +94,7 @@ async def verify_otp(body: VerifyOTPRequest, request: Request, db: AsyncSession 
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
 
-    if not user or user.reset_password_otp != body.otp:
+    if not user or not user.reset_password_otp or not secrets.compare_digest(user.reset_password_otp, body.otp):
         raise HTTPException(status_code=400, detail="Invalid verification code.")
 
     if user.reset_password_expires_at < datetime.now(timezone.utc):  # type: ignore[operator]
@@ -103,6 +103,8 @@ async def verify_otp(body: VerifyOTPRequest, request: Request, db: AsyncSession 
     # Generate a temporary token to allow password reset
     reset_token = secrets.token_urlsafe(32)
     user.reset_password_token = reset_token  # type: ignore[assignment]
+    user.reset_password_otp = None  # type: ignore[assignment]
+    user.reset_password_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # type: ignore[assignment]
     await db.commit()
 
     return {"message": "OTP verified successfully.", "reset_token": reset_token}
@@ -113,11 +115,11 @@ async def verify_otp(body: VerifyOTPRequest, request: Request, db: AsyncSession 
 async def reset_password(
     body: ResetPasswordRequest, request: Request, db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(User).where(User.email == body.email))
+    result = await db.execute(select(User).where(User.reset_password_token == body.token))
     user = result.scalar_one_or_none()
 
-    if not user:
-        raise HTTPException(status_code=400, detail="User not found.")
+    if not user or user.reset_password_expires_at < datetime.now(timezone.utc):  # type: ignore[operator]
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
 
     user.password_hash = hash_password(body.new_password)  # type: ignore[assignment]
     user.reset_password_otp = None  # type: ignore[assignment]
