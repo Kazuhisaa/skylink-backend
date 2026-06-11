@@ -1,10 +1,8 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import require_admin
 from app.core.limiter import limiter
 from app.database import get_db
-from app.schemas.admin.airports import AirportCreate, AirportUpdate
 from app.schemas.flights import AirportRead
 from app.services.admin import airport_service
 

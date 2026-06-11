@@ -1,16 +1,14 @@
 import math
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.dependencies import get_current_user, require_admin
+from app.core.dependencies import require_admin
 from app.core.limiter import limiter
 from app.database import get_db
-from app.models.auth import User
 from app.schemas.pagination import PaginatedResponse
-from app.schemas.users import UserRead, UserStatusUpdate, UserUpdate
+from app.schemas.users import UserRead, UserStatusUpdate
 from app.services import users_service
 
 router = APIRouter(prefix="/users", tags=["Users"])
