@@ -19,6 +19,7 @@ from app.schemas.auth import (
     ResetPasswordRequest,
     TokenResponse,
     UserRead,
+    VerifyOTPRequest,
 )
 from app.services.auth_services import create_admin, create_passenger, verify_user
 from app.services.email_service import send_password_reset_email
@@ -77,14 +78,36 @@ async def forgot_password(
     result = await db.execute(select(User).where(User.email == body.email))
     user = result.scalar_one_or_none()
     if user:
-        token = secrets.token_urlsafe(32)
-        user.reset_password_token = token  # type: ignore[assignment]
-        user.reset_password_expires_at = datetime.now(timezone.utc) + timedelta(hours=1)  # type: ignore[assignment]
+        otp = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+        user.reset_password_otp = otp  # type: ignore[assignment]
+        user.reset_password_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # type: ignore[assignment]
         await db.commit()
-        await send_password_reset_email(user.email, token)  # type: ignore[arg-type]
+        await send_password_reset_email(user.email, otp)  # type: ignore[arg-type]
     return {
-        "message": "If your email is registered, you will receive a password reset link shortly."
+        "message": "If your email is registered, you will receive a 6-digit verification code shortly."
     }
+
+
+@router.post("/verify-otp")
+@limiter.limit("10/hour")
+async def verify_otp(body: VerifyOTPRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if not user or not user.reset_password_otp or not secrets.compare_digest(user.reset_password_otp, body.otp):
+        raise HTTPException(status_code=400, detail="Invalid verification code.")
+
+    if user.reset_password_expires_at < datetime.now(timezone.utc):  # type: ignore[operator]
+        raise HTTPException(status_code=400, detail="Verification code has expired.")
+
+    # Generate a temporary token to allow password reset
+    reset_token = secrets.token_urlsafe(32)
+    user.reset_password_token = reset_token  # type: ignore[assignment]
+    user.reset_password_otp = None  # type: ignore[assignment]
+    user.reset_password_expires_at = datetime.now(timezone.utc) + timedelta(minutes=10)  # type: ignore[assignment]
+    await db.commit()
+
+    return {"message": "OTP verified successfully.", "reset_token": reset_token}
 
 
 @router.post("/reset-password")
@@ -94,9 +117,12 @@ async def reset_password(
 ):
     result = await db.execute(select(User).where(User.reset_password_token == body.token))
     user = result.scalar_one_or_none()
+
     if not user or user.reset_password_expires_at < datetime.now(timezone.utc):  # type: ignore[operator]
         raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
+
     user.password_hash = hash_password(body.new_password)  # type: ignore[assignment]
+    user.reset_password_otp = None  # type: ignore[assignment]
     user.reset_password_token = None  # type: ignore[assignment]
     user.reset_password_expires_at = None  # type: ignore[assignment]
     await db.commit()
