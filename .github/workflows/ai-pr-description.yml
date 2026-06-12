@@ -30,7 +30,10 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          DIFF='${{ steps.diff.outputs.diff }}'
+          DIFF=$(cat <<'EOF_DIFF'
+          ${{ steps.diff.outputs.diff }}
+          EOF_DIFF
+          )
           BRANCH="${{ github.head_ref }}"
 
           PROMPT="You are a helpful assistant that writes GitHub PR descriptions.
