@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 async def create_payment_intent(
-    booking_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession
+    booking_id: uuid.UUID, user_id: uuid.UUID, payment_method: str, db: AsyncSession
 ) -> Dict[str, Any]:
     # 1. Fetch booking and verify ownership
     result = await db.execute(
@@ -38,13 +38,43 @@ async def create_payment_intent(
             raise HTTPException(status_code=400, detail="Booking is already paid")
         # If it's still pending, we can return the existing gateway_ref or create a new one.
         # To avoid multiple clicks, we return the existing intent if it exists.
-        if booking.payment.gateway_ref:
+        if payment_method not in ("gcash", "paymaya") and booking.payment.gateway_ref:
             # Optionally retrieve the latest status from PayMongo
             intent = await paymongo_service.retrieve_payment_intent(booking.payment.gateway_ref)
             return {
                 "client_key": intent["data"]["attributes"]["client_key"],
                 "payment_intent_id": intent["data"]["id"],
             }
+
+    # If payment method is GCash or Maya, confirm it directly (mocking success)
+    if payment_method in ("gcash", "paymaya"):
+        amount_centavos = int(float(booking.total_price) * 100)
+        
+        if not booking.payment:
+            new_payment = Payment(
+                id=uuid.uuid4(),
+                booking_id=booking_id,
+                amount=amount_centavos,
+                currency="PHP",
+                method="mock_bypass",
+                payment_method_type=payment_method,
+                status="paid",
+                gateway_ref=f"mock_{payment_method}_{uuid.uuid4().hex[:8]}",
+                external_metadata={"mock": True, "method": payment_method},
+                paid_at=datetime.now(),
+            )
+            db.add(new_payment)
+        else:
+            booking.payment.status = "paid"
+            booking.payment.method = "mock_bypass"
+            booking.payment.payment_method_type = payment_method
+            booking.payment.paid_at = datetime.now()
+            booking.payment.gateway_ref = f"mock_{payment_method}_{uuid.uuid4().hex[:8]}"
+            booking.payment.external_metadata = {"mock": True, "method": payment_method}
+            
+        booking.status = "confirmed"
+        await db.commit()
+        return {"client_key": "mock_client_key_for_bypass", "payment_intent_id": "mock_intent_id_for_bypass"}
 
     # 3. Create Payment Intent in PayMongo
     # total_price is stored in pesos (Numeric 10,2). PayMongo requires centavos (integer).

@@ -19,11 +19,12 @@ logger = logging.getLogger(__name__)
 async def create_payment_intent(
     request: Request,
     booking_id: uuid.UUID,
+    payment_method: str = "card",
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     # Creates a PayMongo payment intent for the given booking
-    return await payments_service.create_payment_intent(booking_id, current_user.id, db)
+    return await payments_service.create_payment_intent(booking_id, current_user.id, payment_method, db)
 
 
 @router.post("/webhook")
