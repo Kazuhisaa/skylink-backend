@@ -21,7 +21,7 @@ class PassengerRead(BaseModel):
     first_name: str
     last_name: str
     date_of_birth: date
-    passport_number: str
+    passport_number: Optional[str] = None
     nationality: str
 
     model_config = {"from_attributes": True}
