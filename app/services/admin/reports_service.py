@@ -35,6 +35,10 @@ async def get_route_report(
         selectinload(Booking.flight).selectinload(Flight.origin_airport),
         selectinload(Booking.flight).selectinload(Flight.destination_airport),
     )
+    if date_from:
+        query = query.where(Booking.booked_at >= date_from)
+    if date_to:
+        query = query.where(Booking.booked_at <= date_to)
     result = await db.execute(query)
     bookings = result.scalars().all()
     from collections import defaultdict
