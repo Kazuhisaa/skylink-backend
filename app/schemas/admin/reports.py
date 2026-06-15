@@ -22,8 +22,15 @@ class RouteBookingPoint(BaseModel):
     revenue: float
 
 
+class RawRouteEntry(BaseModel):
+    route: str
+    revenue: float
+    booked_at: datetime
+    status: str
+
 class RouteReportRead(BaseModel):
     routes: list[RouteBookingPoint] = []
+    raw: list[RawRouteEntry] = []
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
 
