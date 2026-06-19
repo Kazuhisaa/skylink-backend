@@ -245,6 +245,7 @@ async def update_flight(
         raise HTTPException(status_code=404, detail="Flight not found.")
 
     updates = body.model_dump(exclude_none=True)
+    seat_pricing_data = updates.pop("seat_pricing", None)
 
     # Check duplicate flight number if being updated
     if "flight_number" in updates and updates["flight_number"] != flight.flight_number:
@@ -271,6 +272,19 @@ async def update_flight(
 
     for field, value in updates.items():
         setattr(flight, field, value)
+
+    if seat_pricing_data:
+        for price_update in seat_pricing_data:
+            pricing_result = await db.execute(
+                select(FlightSeatPricing)
+                .where(
+                    FlightSeatPricing.flight_id == flight_id,
+                    FlightSeatPricing.seat_class_id == price_update["seat_class_id"]
+                )
+            )
+            pricing = pricing_result.scalar_one_or_none()
+            if pricing:
+                pricing.price = price_update["price"]
 
     await db.commit()
     await _invalidate_flight_cache()

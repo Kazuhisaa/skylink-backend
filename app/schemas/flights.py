@@ -53,6 +53,11 @@ class FlightUpdate(BaseModel):
     departure_time: Optional[datetime] = None
     arrival_time: Optional[datetime] = None
     status: Optional[str] = None
+    seat_pricing: Optional[list["FlightSeatPricingCreate"]] = None
+
+
+
+
 
 
 class FlightRead(BaseModel):
