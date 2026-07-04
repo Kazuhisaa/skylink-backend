@@ -1,234 +1,121 @@
-# SkyLink Airline Reservation System — Backend API
+# Skylink — Flight Booking & Reservation Management API
 
-A web-based airline reservation system built with FastAPI and Supabase (PostgreSQL). This backend provides RESTful API endpoints for flight searching, ticket booking, payment processing, and admin management.
+🔗 **[Live Demo](#)** · 🎬 **[Demo Video](#)** · 💻 **[Frontend Repo](#)**
+
+## What It Does
+Booking a flight and then trying to manage it — reschedule, cancel, track a PNR, pay — often means dealing with a patchwork of systems that don't talk to each other. Skylink is a backend API that handles the full lifecycle of a flight booking in one place: search and pricing, seat-class inventory, passenger details, payments via PayMongo, rescheduling and cancellation with audit history, and role-based access for passengers and admins.
+
+---
+
+## Key Features
+
+- **Role-based access** — Admins and Passengers each see a different scope of data and actions.
+- **Flight search & booking** — search available flights and book a seat with passenger details in a few steps.
+- **Manage bookings** — reschedule or cancel a trip anytime, with a full history kept for reference.
+- **Secure payments** — pay for a booking online, with automatic confirmation once payment goes through.
+- **Sign in your way** — log in with Google or with a regular email and password, with OTP verification for new accounts.
+- **Promo codes** — apply discount codes to lower the price of a booking.
+- **PNR lookup** — check a booking's status anytime using its reservation reference.
+- **Admin dashboard** — manage flights, bookings, users, and promotions from one place.
+
+---
+
+## Architecture Overview
+
+```mermaid
+flowchart LR
+    Client[React SPA] -->|REST API| API[FastAPI]
+    API -->|ORM queries| DB[(PostgreSQL)]
+    API -->|cache flight search| Cache[(Redis)]
+    API -->|check request limit| Cache
+    API -->|create/verify payment| PayMongo[PayMongo API]
+    API -->|verify ID token| Google[Google OAuth]
+```
 
 ---
 
 ## Tech Stack
 
-- **Framework:** FastAPI (Python 3.11)
-- **Database:** Supabase (PostgreSQL) via SQLAlchemy
-- **Authentication:** JWT (python-jose + passlib)
-- **ORM:** SQLAlchemy + Alembic (migrations)
-- **Server:** Uvicorn
-- **Project Management:** Jira + GitHub (connected via Atlassian app)
-- **CI/CD:** GitHub Actions
+| Layer | Technology |
+|-------|------------|
+| Backend | Python, FastAPI, PostgreSQL, SQLAlchemy, Alembic, Pytest, asyncio, SlowAPI |
+| Frontend | React, TypeScript, TanStack, Zod, Zustand, Axios, React Hook Form, TailwindCSS |
+| Auth | JWT, Google OAuth, bcrypt password hashing, OTP email verification |
+| Security | Role-based dependencies, Rate limiting, CORS, Trusted Host, ORM-protected SQL, PayMongo webhook signature verification |
+| Performance | Redis (cache + rate limiting), end-to-end pagination, Tanstack Query, database indexes |
+| Deployment | Render, Vercel, Supabase |
 
 ---
 
-## Project Structure
+## API & Structure
 
-```
-skylink-api/
-├── app/
-│   ├── main.py              # FastAPI app entry point
-│   ├── database.py          # Database connection
-│   ├── ...
-├── requirements.txt         # Python dependencies
-├── Dockerfile               # Docker configuration
-├── docker-compose.yml       # Docker Compose configuration
-├── .env                     # Environment variables (not committed)
-├── .env.example             # Environment variable template
-├── .gitignore
-├── .dockerignore            # Docker ignore patterns
-...
-```
+- **Architecture**: Monolithic FastAPI backend, layered `routers → services → schemas → models`
+- **Endpoints**: 65 REST endpoints across 15 relational tables
+- **Validation**: End-to-end type-safe validation — Zod (frontend) → Pydantic (backend) → SQLAlchemy ORM (database)
+- **Security middleware**: CORS, trusted host, custom security headers (HSTS, X-Frame-Options, X-Content-Type-Options)
+- **Rate limiting**: Per-endpoint limits via SlowAPI, Redis-backed with automatic in-memory fallback if Redis is unavailable
+- **Caching**: Redis-backed caching on flight search results, invalidated on writes (create/update/cancel)
+- **Auth**: JWT-based sessions, Google OAuth login/register, OTP email verification, password reset flow
+- **Payments**: PayMongo payment intents with webhook signature verification (test/live mode)
+- **Migrations**: Alembic-managed, version-controlled schema history
+- **Testing**: 306 Pytest tests covering routers, services, and business logic
 
 ---
 
-## Running with Docker
-
-The easiest way to run the application and its database is using Docker.
+## Local Setup
 
 ### Prerequisites
-- [Docker](https://docs.docker.com/get-docker/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+- Python 3.12+
+- Node.js for the frontend
 
-### Setup and Run
-1. **Prepare Environment Variables**
-   Ensure you have a `.env` file in the root directory. You can copy it from `.env.example`:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Build and Start**
-   ```bash
-   docker compose up --build
-   ```
-
-This command will:
-- Build the FastAPI application image.
-- Start a PostgreSQL container.
-- Run database migrations automatically.
-- Start the API server at `http://localhost:8000`.
-
-### Useful Commands
-- **Stop containers:** `docker compose down`
-- **View logs:** `docker compose logs -f api`
-- **Run migrations manually:** `docker compose exec api alembic upgrade head`
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- Python 3.11
-- Git
-- Supabase account
-
-### Installation
-
-1. **Clone the repository**
+### Backend
+1. Clone the repo and navigate into it
 ```bash
-git clone https://github.com/Kazuhisaa/skylink-backend.git
-cd skylink-backend
+git clone https://github.com/edrian-a-marinas/skylink-api.git
+cd skylink-api
 ```
-
-2. **Create and activate virtual environment**
+2. Create a virtual environment and install dependencies
 ```bash
-# Windows
-py -3.11 -m venv venv
-venv\Scripts\activate
-
-# Mac/Linux
-python3.11 -m venv venv
-source venv/bin/activate
-```
-
-3. **Install dependencies**
-```bash
+python3 -m venv venv && source venv/bin/activate   # venv\Scripts\activate on Windows
 pip install -r requirements.txt
 ```
-
-4. **Set up environment variables**
-
-Copy `.env.example` to `.env` and fill in your values:
+3. Copy the environment template and fill in your values
 ```bash
-copy .env.example .env
+cp .env.example .env
 ```
+4. Run database migrations
 
-`.env` contents:
-```env
-SUPABASE_URL=your-supabase-url
-SUPABASE_KEY=your-supabase-key
-DATABASE_URL=postgresql://postgres:your-password@db.your-project.supabase.co:5432/postgres
-JWT_SECRET_KEY=your-secret-key
-JWT_ALGORITHM=HS256
-```
+> **Note:** This project's migrations include Supabase-specific RLS policies (using `auth.role()`), which require a Supabase-backed database. If `DATABASE_URL` points to plain local PostgreSQL (not Supabase), this step will fail with `schema "auth" does not exist`. The API itself (step 5) runs fine regardless — this only affects the RLS-related migrations.
 
-5. **Run the development server**
 ```bash
-uvicorn main:app --reload
+alembic upgrade head
 ```
+5. Start the API server
+```bash
+uvicorn app.main:app --reload
+```
+API available at `http://localhost:8000/docs`
 
-6. **Access the API docs**
-
-Open your browser and go to:
+### Frontend
+1. Clone the repo and navigate into it
+```bash
+git clone https://github.com/edrian-a-marinas/skylink-client.git
+cd skylink-client
 ```
-http://localhost:8000/docs
+2. Install dependencies
+```bash
+npm install
 ```
+3. Copy the environment template and fill in your values
+```bash
+cp .env.example .env.local
+```
+4. Start the dev server
+```bash
+npm run dev
+```
+5. App available at `http://localhost:5173`
 
 ---
+## Congrats, App Running! 🎉
 
-## API Endpoints
-
-### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/auth/register` | Register a new user |
-| POST | `/auth/login` | Login and get JWT token |
-
-### Flights
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/flights` | Search and filter flights |
-| GET | `/flights/{id}` | Get flight details |
-
-### Bookings
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/bookings` | Book a ticket |
-| DELETE | `/bookings/{id}` | Cancel a booking |
-| PUT | `/bookings/{id}` | Reschedule a booking |
-| GET | `/bookings` | View booking history |
-
-### Admin
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/admin/flights` | Add a new flight |
-| PUT | `/admin/flights/{id}` | Edit a flight |
-| DELETE | `/admin/flights/{id}` | Delete a flight |
-| GET | `/admin/users` | View all users |
-| GET | `/admin/reports` | View booking reports |
-
----
-
-## Git Workflow
-
-This project follows a feature branch workflow connected to Jira:
-
-```
-main                    # Production-ready code
-└── develop             # Integration branch
-    └── feature/SKYLINK-{issue-number}-{description}
-```
-
-### Branch Naming Convention
-```
-feature/SKYLINK-6-user-registration
-feature/SKYLINK-8-jwt-token
-```
-
-### Commit Message Convention
-```
-SKYLINK-{issue-number}: short description of change
-
-Example:
-SKYLINK-6: implement user registration endpoint
-```
-
-### Pull Request Process
-1. Create a branch from `main` using the Jira issue key
-2. Write code and commit with Jira issue key in the message
-3. Push branch and open a Pull Request
-4. GitHub Actions CI will automatically run tests
-5. PR must pass all checks before merging
-6. Merging PR automatically updates Jira issue to Done
-
----
-
-## CI/CD Pipeline
-
-GitHub Actions runs automatically on every push and PR:
-
-- Install Python dependencies
-- Run pytest test suite
-- Check code style with flake8
-- Block merge if any check fails
-
----
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_KEY` | Your Supabase publishable key |
-| `DATABASE_URL` | PostgreSQL connection string from Supabase |
-| `JWT_SECRET_KEY` | Secret key for JWT token signing |
-| `JWT_ALGORITHM` | JWT algorithm (default: HS256) |
-
-> **Never commit your `.env` file.** Share credentials with teammates via private message only.
-
-
-## Jira Project
-
-Track all issues and sprint progress on our Jira board:
-[SkyLink Jira Board](https://jebreilblancada.atlassian.net/jira/software/projects/SKYLINK/boards)
-
----
-
-## License
-
-For academic purposes only — SkyLink Airline Reservation System.
